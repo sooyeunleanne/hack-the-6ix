@@ -165,6 +165,7 @@ export default function UploadModal({ onClose, onAdded }) {
           category: item.category,
           colorTags: item.color_tags || [],
           styleTags: item.style_tags || [],
+          attributes: item.attributes || {},
           wearCount: item.wear_count || 0,
           lastWornAt: item.last_worn_at,
           createdAt: item.created_at

@@ -10,7 +10,7 @@ import FairyGodmother from "../components/FairyGodmother";
 import TryOnPanel from "../components/TryOnPanel";
 import ClosetHealthCard from "../components/ClosetHealthCard";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
-import { suggestColorMatches } from "../../lib/colorMatching";
+import { suggestOutfitMatches } from "../../lib/outfitMatching";
 import { computeClosetHealth } from "../../lib/sustainability";
 
 const DONATE_STALE_DAYS = 45;
@@ -66,10 +66,11 @@ export default function DashboardClient({ user, initialItems }) {
   }, [items, closetCategory, leastWornOnly, leastWornIds]);
 
   // Recomputes live as the outfit selection changes: for every unselected
-  // item, the strongest color relation ("good"/"soso") to whatever's
-  // already picked, per lib/colorMatching.js.
-  const colorMatches = useMemo(
-    () => suggestColorMatches(selectedItems, items),
+  // item, the best-scoring match against whatever's already picked, across
+  // color, occasion, style, silhouette, and material — see
+  // lib/outfitMatching.js.
+  const outfitMatches = useMemo(
+    () => suggestOutfitMatches(selectedItems, items),
     [selectedItems, items]
   );
 
@@ -371,7 +372,7 @@ export default function DashboardClient({ user, initialItems }) {
               onDelete={handleDelete}
               selectedItemIds={selectedItemIds}
               onSelectToggle={handleSelectToggle}
-              colorMatches={colorMatches}
+              outfitMatches={outfitMatches}
               leastWornIds={leastWornIds}
             />
           </div>

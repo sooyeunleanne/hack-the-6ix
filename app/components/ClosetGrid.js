@@ -48,7 +48,7 @@ export function getLeastWornIds(items) {
 // since `items` may already be narrowed by the category/least-worn filters,
 // which would corrupt the per-category "max wear" comparison inside
 // getLeastWornIds.
-export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle, colorMatches, leastWornIds }) {
+export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle, outfitMatches, leastWornIds }) {
   if (items.length === 0) {
     return (
       <div
@@ -93,7 +93,7 @@ export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = 
                     onDelete={onDelete}
                     selected={selectedItemIds.includes(item.id)}
                     onSelectToggle={onSelectToggle}
-                    colorMatch={colorMatches?.get(item.id)}
+                    outfitMatch={outfitMatches?.get(item.id)}
                   />
                 ))}
               </AnimatePresence>
