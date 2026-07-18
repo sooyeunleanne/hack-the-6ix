@@ -41,6 +41,11 @@ export function installMockApi() {
       return jsonResponse({ ok: true, outfitLogEntry: {} });
     }
 
+    if (/^\/api\/closet-items\/[^/]+$/.test(url) && method === "DELETE") {
+      await delay();
+      return jsonResponse({ ok: true });
+    }
+
     if (url === "/api/closet-items" && method === "POST") {
       await delay();
       const body = JSON.parse(init.body || "{}");

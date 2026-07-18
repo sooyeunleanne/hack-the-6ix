@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import ClosetItemCard from "./ClosetItemCard";
 
-export default function ClosetGrid({ items, onWear }) {
+export default function ClosetGrid({ items, onWear, onDelete }) {
   if (items.length === 0) {
     return (
       <div
@@ -24,7 +24,7 @@ export default function ClosetGrid({ items, onWear }) {
     <motion.div layout className="closet-grid">
       <AnimatePresence>
         {items.map((item, i) => (
-          <ClosetItemCard key={item.id} item={item} isFrontOfCloset={i < frontCount} onWear={onWear} />
+          <ClosetItemCard key={item.id} item={item} isFrontOfCloset={i < frontCount} onWear={onWear} onDelete={onDelete} />
         ))}
       </AnimatePresence>
     </motion.div>
