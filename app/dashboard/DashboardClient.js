@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "../components/SparkleField";
-import ClosetGrid, { CATEGORY_ORDER, LEAST_WORN_COUNT } from "../components/ClosetGrid";
+import ClosetGrid, { getLeastWornIds } from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import DonationPanel from "../components/DonationPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import TryOnPanel from "../components/TryOnPanel";
+import ClosetHealthCard from "../components/ClosetHealthCard";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
+import { suggestOutfitMatches } from "../../lib/outfitMatching";
+import { computeClosetHealth } from "../../lib/sustainability";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -52,27 +55,27 @@ export default function DashboardClient({ user, initialItems }) {
     [items, selectedItemIds]
   );
 
-  // Mirrors ClosetGrid's own per-category grouping so "least worn" here
-  // always matches the items actually badged "Least worn" on the tiles.
-  const leastWornIds = useMemo(() => {
-    const grouped = {};
-    CATEGORY_ORDER.forEach((c) => (grouped[c] = []));
-    items.forEach((item) => {
-      const category = CATEGORY_ORDER.includes(item.category) ? item.category : "Other";
-      grouped[category].push(item);
-    });
-    const ids = new Set();
-    CATEGORY_ORDER.forEach((c) => {
-      grouped[c].slice(0, LEAST_WORN_COUNT).forEach((item) => ids.add(item.id));
-    });
-    return ids;
-  }, [items]);
+  // Computed from the full, unfiltered closet so it stays correct regardless
+  // of which category/least-worn filters are currently narrowing the view —
+  // see the comment on ClosetGrid's leastWornIds prop for why.
+  const leastWornIds = useMemo(() => getLeastWornIds(items), [items]);
 
   const filteredItems = useMemo(() => {
     let result = closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory);
     if (leastWornOnly) result = result.filter((item) => leastWornIds.has(item.id));
     return result;
   }, [items, closetCategory, leastWornOnly, leastWornIds]);
+
+  // Recomputes live as the outfit selection changes: for every unselected
+  // item, the best-scoring match against whatever's already picked, across
+  // color, occasion, style, silhouette, and material — see
+  // lib/outfitMatching.js.
+  const outfitMatches = useMemo(
+    () => suggestOutfitMatches(selectedItems, items),
+    [selectedItems, items]
+  );
+
+  const closetHealth = useMemo(() => computeClosetHealth(items), [items]);
 
   function handleSelectToggle(itemId) {
     setSelectedItemIds((prev) =>
@@ -286,19 +289,9 @@ export default function DashboardClient({ user, initialItems }) {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/bbblogo.jpg"
-                alt=""
-                width={48}
-                height={48}
-                style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(240,200,90,0.4)" }}
-              />
-              <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
-                bibbidi-bobbidi-boo!
-              </h1>
-            </div>
+            <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
+              Bibbity Bobbity Boo
+            </h1>
             <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
               Welcome back, {user.name.split(" ")[0]}
             </p>
@@ -342,6 +335,8 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
         </header>
 
+        <ClosetHealthCard health={closetHealth} />
+
         <section className="dashboard-grid" style={{ marginTop: 32 }}>
           <div>
             <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 6 }}>Your Closet</h2>
@@ -378,6 +373,8 @@ export default function DashboardClient({ user, initialItems }) {
               onDelete={handleDelete}
               selectedItemIds={selectedItemIds}
               onSelectToggle={handleSelectToggle}
+              outfitMatches={outfitMatches}
+              leastWornIds={leastWornIds}
             />
           </div>
 

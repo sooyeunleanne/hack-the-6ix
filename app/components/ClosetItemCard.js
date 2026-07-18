@@ -4,9 +4,12 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { nearestColorName } from "../../lib/colorNames";
 
-export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle }) {
+export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle, outfitMatch }) {
   const [wearing, setWearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const matchGood = outfitMatch?.tier === "good";
+  const matchSoso = outfitMatch?.tier === "soso";
 
   async function handleWear() {
     setWearing(true);
@@ -145,16 +148,27 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         >
           {item.category}
         </strong>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        {outfitMatch && (
+          <span
+            className="chip"
+            title={outfitMatch.reason}
+            style={{
+              alignSelf: "flex-start",
+              fontSize: "0.68rem",
+              padding: "2px 9px",
+              background: matchGood ? "rgba(176,183,230,0.22)" : "rgba(176,183,230,0.08)",
+              borderColor: matchGood ? "var(--periwinkle)" : "var(--glass-border)",
+              color: matchGood ? "var(--periwinkle)" : "var(--periwinkle-soft)"
+            }}
+          >
+            {matchGood ? "Pairs well with" : "Goes okay with"} {outfitMatch.label}
+          </span>
+        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {(item.colorTags || []).slice(0, 3).map((tag) => (
             <span key={tag} className="chip" style={{ padding: "2px 9px 2px 5px", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 11, height: 11, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
               {nearestColorName(tag)}
-            </span>
-          ))}
-          {(item.styleTags || []).slice(0, 3).map((tag) => (
-            <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem", background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>
-              #{tag}
             </span>
           ))}
         </div>
