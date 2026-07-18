@@ -253,9 +253,16 @@ export default function DashboardClient({ user, initialItems }) {
               initial={{ scale: 0, rotate: -30, opacity: 0 }}
               animate={{ scale: [0, 1.4, 1], rotate: [0, 12, 0], opacity: 1 }}
               transition={{ duration: 1.1, ease: "easeOut" }}
-              style={{ fontSize: 96, filter: "drop-shadow(0 0 30px rgba(240,200,90,0.8))" }}
+              style={{ filter: "drop-shadow(0 0 40px rgba(240,200,90,0.8))" }}
             >
-              👠
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/bbblogo.jpg"
+                alt=""
+                width={260}
+                height={260}
+                style={{ borderRadius: 32, display: "block" }}
+              />
             </motion.div>
           </motion.div>
         )}
@@ -278,9 +285,19 @@ export default function DashboardClient({ user, initialItems }) {
           }}
         >
           <div>
-            <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
-              bibbidi-bobbidi-boo!
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/bbblogo.jpg"
+                alt=""
+                width={48}
+                height={48}
+                style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(240,200,90,0.4)" }}
+              />
+              <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
+                bibbidi-bobbidi-boo!
+              </h1>
+            </div>
             <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
               Welcome back, {user.name.split(" ")[0]}
             </p>

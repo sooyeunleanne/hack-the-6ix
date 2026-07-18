@@ -59,7 +59,8 @@ export default function Splash({ onEnter } = {}) {
           transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4 }}
           style={{ display: "inline-block" }}
         >
-          🪄
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/bbblogo.jpg" alt="" width={200} height={200} style={{ borderRadius: 16, display: "block" }} />
         </motion.span>
       </motion.div>
 
