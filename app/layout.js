@@ -1,9 +1,10 @@
 import { auth0 } from "../lib/auth0";
 import { upsertUserByAuth0Id } from "../models/users";
+import "./globals.css";
 
 export const metadata = {
-  title: "Closet App",
-  description: "AI-powered closet styling app"
+  title: "Bibbity Bobbity Boo",
+  description: "Your closet, enchanted: AI outfit magic."
 };
 
 // Runs in the Node.js runtime on every request (unlike middleware.js, which
