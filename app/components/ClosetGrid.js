@@ -3,7 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import ClosetItemCard from "./ClosetItemCard";
 
-const CATEGORY_ORDER = ["Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"];
+// Exported so DashboardClient can compute the same "least worn" set for its
+// filter toggle — keeps the toggle and the on-tile badge always in sync.
+export const CATEGORY_ORDER = ["Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"];
+export const LEAST_WORN_COUNT = 3;
 
 export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle, colorMatches }) {
   if (items.length === 0) {
@@ -29,18 +32,18 @@ export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = 
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 34 }}>
       {CATEGORY_ORDER.map((category) => {
         const categoryItems = grouped[category];
         if (categoryItems.length === 0) return null;
 
-        const frontCount = Math.min(3, categoryItems.length);
+        const frontCount = Math.min(LEAST_WORN_COUNT, categoryItems.length);
         return (
           <section key={category}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: "1.05rem", color: "var(--cream)" }}>{category}</h3>
-                <p style={{ margin: "4px 0 0", color: "var(--periwinkle-soft)", fontSize: "0.8rem" }}>
+                <p style={{ margin: "5px 0 0", color: "var(--periwinkle-soft)", fontSize: "0.8rem" }}>
                   {categoryItems.length} item{categoryItems.length === 1 ? "" : "s"}
                 </p>
               </div>

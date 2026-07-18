@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "../components/SparkleField";
-import ClosetGrid from "../components/ClosetGrid";
+import ClosetGrid, { CATEGORY_ORDER, LEAST_WORN_COUNT } from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import FairyGodmother from "../components/FairyGodmother";
@@ -36,6 +36,7 @@ export default function DashboardClient({ user, initialItems }) {
   const [weatherError, setWeatherError] = useState(null);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [closetCategory, setClosetCategory] = useState("All");
+  const [leastWornOnly, setLeastWornOnly] = useState(false);
   const [outfitImage, setOutfitImage] = useState(null);
   const [outfitLoading, setOutfitLoading] = useState(false);
   const [outfitError, setOutfitError] = useState(null);
@@ -51,10 +52,27 @@ export default function DashboardClient({ user, initialItems }) {
     [items, selectedItemIds]
   );
 
-  const filteredItems = useMemo(
-    () => (closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory)),
-    [items, closetCategory]
-  );
+  // Mirrors ClosetGrid's own per-category grouping so "least worn" here
+  // always matches the items actually badged "Least worn" on the tiles.
+  const leastWornIds = useMemo(() => {
+    const grouped = {};
+    CATEGORY_ORDER.forEach((c) => (grouped[c] = []));
+    items.forEach((item) => {
+      const category = CATEGORY_ORDER.includes(item.category) ? item.category : "Other";
+      grouped[category].push(item);
+    });
+    const ids = new Set();
+    CATEGORY_ORDER.forEach((c) => {
+      grouped[c].slice(0, LEAST_WORN_COUNT).forEach((item) => ids.add(item.id));
+    });
+    return ids;
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    let result = closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory);
+    if (leastWornOnly) result = result.filter((item) => leastWornIds.has(item.id));
+    return result;
+  }, [items, closetCategory, leastWornOnly, leastWornIds]);
 
   // Recomputes live as the outfit selection changes: for every unselected
   // item, the strongest color relation ("good"/"soso") to whatever's
@@ -256,7 +274,7 @@ export default function DashboardClient({ user, initialItems }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: showIntro ? 0 : 1 }}
         transition={{ duration: 0.7 }}
-        style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "28px 20px 120px" }}
+        style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "36px 24px 140px" }}
       >
         <header
           style={{
@@ -264,25 +282,25 @@ export default function DashboardClient({ user, initialItems }) {
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
-            gap: 16,
-            marginBottom: 28
+            gap: 18,
+            marginBottom: 36
           }}
         >
           <div>
             <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
               Bibbity Bobbity Boo
             </h1>
-            <p style={{ margin: "4px 0 0", color: "var(--periwinkle-soft)" }}>
-              Welcome back, {user.name.split(" ")[0]} 
+            <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
+              Welcome back, {user.name.split(" ")[0]}
             </p>
             {weather && (
-              <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--periwinkle-soft)" }}>
+              <p style={{ margin: "6px 0 0", fontSize: "0.85rem", color: "var(--periwinkle-soft)" }}>
                 {weather.icon} Today&apos;s weather: {weather.temp}°{weather.unit}, {weather.condition}
                 {weather.locationLabel ? ` in ${weather.locationLabel}` : ""}
               </p>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <button className="btn-gold" onClick={() => setShowUpload(true)}>
               + Add to Closet
             </button>
@@ -315,12 +333,22 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
         </header>
 
-        <section className="dashboard-grid" style={{ marginTop: 24 }}>
+        <section className="dashboard-grid" style={{ marginTop: 32 }}>
           <div>
-            <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 4 }}>Your Closet</h2>
+            <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 6 }}>Your Closet</h2>
             <p style={{ margin: "0 0 16px", color: "var(--periwinkle-soft)", fontSize: "0.85rem" }}>
               Least-worn pieces step to the front — tap a photo to build an outfit.
             </p>
+
+            <button
+              type="button"
+              onClick={() => setLeastWornOnly((v) => !v)}
+              className={`least-worn-toggle${leastWornOnly ? " active" : ""}`}
+              style={{ marginBottom: 16 }}
+              aria-pressed={leastWornOnly}
+            >
+              {leastWornOnly ? "Showing least worn only" : "Least worn only"}
+            </button>
 
             <div className="filter-row">
               {categories.map((category) => (
@@ -345,7 +373,7 @@ export default function DashboardClient({ user, initialItems }) {
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
             <TryOnPanel
               photo={photo}
               onPhotoCaptured={handlePhotoCaptured}
@@ -376,7 +404,7 @@ export default function DashboardClient({ user, initialItems }) {
             transition={{ duration: 0.25 }}
             className="glass-panel outfit-tray"
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div className="outfit-tray-thumbs">
                 {selectedItems.map((item) => (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -388,7 +416,7 @@ export default function DashboardClient({ user, initialItems }) {
               </span>
             </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"
                 onClick={handleClearSelection}

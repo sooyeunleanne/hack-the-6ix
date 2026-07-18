@@ -87,9 +87,9 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
   const displayImage = outfitImage || photo;
 
   return (
-    <section className="glass-panel" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+    <section className="glass-panel" style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
-        <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>Try It On</h3>
+        <h3 style={{ margin: "0 0 6px", fontSize: "1.05rem", color: "var(--cream)" }}>Try It On</h3>
         <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
           {photo
             ? "Select pieces from your closet, then generate the look."
@@ -104,7 +104,7 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
       )}
 
       {!photo && cameraOn && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ position: "relative" }}>
             <video
               ref={videoRef}
@@ -138,7 +138,7 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
       )}
 
       {photo && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div
             style={{
               position: "relative",

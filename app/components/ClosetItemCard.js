@@ -39,22 +39,24 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
       layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -5, scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 300, damping: 22 }}
       className="glass-panel"
       style={{
-        padding: 10,
+        padding: 14,
+        borderRadius: 18,
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 10,
         border: selected
           ? "2px solid var(--gold)"
           : isFrontOfCloset
-          ? "1px solid var(--gold)"
+          ? "1px solid rgba(207,224,251,0.5)"
           : "1px solid var(--glass-border)",
         boxShadow: selected
           ? "0 0 26px rgba(240,200,90,0.55)"
           : isFrontOfCloset
-          ? "0 0 22px rgba(240,200,90,0.45)"
+          ? "0 0 18px rgba(207,224,251,0.28)"
           : "var(--shadow-soft)",
         position: "relative"
       }}
@@ -93,7 +95,7 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
             zIndex: 1
           }}
         >
-          ✨ wear me
+          Least worn
         </span>
       )}
 
@@ -101,20 +103,22 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         onClick={handleDelete}
         disabled={deleting}
         aria-label={`Remove ${item.category} from closet`}
-        className="btn-glass"
+        className="tile-delete-btn"
         style={{
           position: "absolute",
-          top: 8,
-          right: 8,
-          width: 26,
-          height: 26,
+          top: 10,
+          right: 10,
+          width: 30,
+          height: 30,
           padding: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           borderRadius: "50%",
-          fontSize: "0.8rem",
+          fontSize: "0.9rem",
+          fontWeight: 700,
           lineHeight: 1,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
           zIndex: 1
         }}
       >
@@ -142,11 +146,28 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
           alt={item.category}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: "auto 0 0 0",
+            height: "38%",
+            background: "linear-gradient(to top, rgba(15,19,48,0.55), transparent)",
+            pointerEvents: "none"
+          }}
+        />
         <span className={`select-badge${selected ? " selected" : ""}`}>{selected ? "✓" : "+"}</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <strong style={{ color: "var(--cream)", fontSize: "0.92rem", textTransform: "capitalize" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        <strong
+          style={{
+            color: "var(--cream)",
+            fontSize: "0.94rem",
+            letterSpacing: "0.01em",
+            textTransform: "capitalize"
+          }}
+        >
           {item.category}
         </strong>
         {colorMatch && (
@@ -177,8 +198,8 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
             </span>
           ))}
         </div>
-        <span style={{ fontSize: "0.72rem", color: "var(--periwinkle-soft)" }}>
-          worn {item.wearCount}x
+        <span className="chip" style={{ alignSelf: "flex-start", padding: "2px 10px", fontSize: "0.68rem" }}>
+          worn {item.wearCount}×
         </span>
       </div>
 
@@ -186,7 +207,7 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         onClick={handleWear}
         disabled={wearing}
         className="btn-glass"
-        style={{ fontSize: "0.78rem", padding: "8px 12px" }}
+        style={{ fontSize: "0.78rem", padding: "9px 12px" }}
       >
         {wearing ? "Marking…" : "I wore this today"}
       </button>
