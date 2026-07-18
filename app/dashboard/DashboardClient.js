@@ -7,6 +7,7 @@ import ClosetGrid from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import FairyGodmother from "../components/FairyGodmother";
+import TryOnPanel from "../components/TryOnPanel";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
 const DONATE_STALE_DAYS = 45;
@@ -37,6 +38,7 @@ export default function DashboardClient({ user, initialItems }) {
   const [outfitImage, setOutfitImage] = useState(null);
   const [outfitLoading, setOutfitLoading] = useState(false);
   const [outfitError, setOutfitError] = useState(null);
+  const [photo, setPhoto] = useState(user.fullBodyPhotoUrl);
 
   const categories = useMemo(
     () => ["All", "Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"],
@@ -59,8 +61,9 @@ export default function DashboardClient({ user, initialItems }) {
     );
   }
 
-  async function handleGenerateOutfit() {
-    if (selectedItemIds.length === 0) return;
+  async function handleGenerateOutfit(idsOverride) {
+    const itemIds = idsOverride || selectedItemIds;
+    if (itemIds.length === 0) return;
 
     setOutfitLoading(true);
     setOutfitError(null);
@@ -70,7 +73,7 @@ export default function DashboardClient({ user, initialItems }) {
       const res = await fetch("/api/tryon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemIds: selectedItemIds })
+        body: JSON.stringify({ itemIds })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Looks like try-on failed.");
@@ -84,6 +87,37 @@ export default function DashboardClient({ user, initialItems }) {
 
   function handleClearSelection() {
     setSelectedItemIds([]);
+    setOutfitImage(null);
+    setOutfitError(null);
+  }
+
+  // Suggested items from the fairy godmother chat replace the current
+  // selection and try on immediately, so the Try It On panel updates
+  // in place instead of requiring a manual "Generate" click.
+  function handleSuggestItems(itemIds) {
+    setSelectedItemIds(itemIds);
+    if (photo) handleGenerateOutfit(itemIds);
+  }
+
+  async function handlePhotoCaptured(dataUrl) {
+    setPhoto(dataUrl);
+    try {
+      const res = await fetch("/api/users/photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrl: dataUrl })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.photoUrl) setPhoto(data.photoUrl);
+      }
+    } catch {
+      /* photo stays local-only — non-fatal */
+    }
+  }
+
+  function handleRetakePhoto() {
+    setPhoto(null);
     setOutfitImage(null);
     setOutfitError(null);
   }
@@ -230,7 +264,7 @@ export default function DashboardClient({ user, initialItems }) {
               Bibbity Bobbity Boo
             </h1>
             <p style={{ margin: "4px 0 0", color: "var(--periwinkle-soft)" }}>
-              Welcome back, {user.name.split(" ")[0]} ✨
+              Welcome back, {user.name.split(" ")[0]} 
             </p>
             {weather && (
               <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--periwinkle-soft)" }}>
@@ -274,68 +308,23 @@ export default function DashboardClient({ user, initialItems }) {
 
         <section className="dashboard-grid" style={{ marginTop: 24 }}>
           <div>
-            <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 12 }}>
-              Your Closet <span style={{ color: "var(--periwinkle-soft)", fontWeight: 400, fontSize: "0.9rem" }}>— least-worn steps to the front</span>
-            </h2>
+            <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 4 }}>Your Closet</h2>
+            <p style={{ margin: "0 0 16px", color: "var(--periwinkle-soft)", fontSize: "0.85rem" }}>
+              Least-worn pieces step to the front — tap a photo to build an outfit.
+            </p>
 
-            <section className="glass-panel" style={{ padding: 18, marginBottom: 20 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setClosetCategory(category)}
-                    className="btn-glass"
-                    style={{
-                      padding: "8px 12px",
-                      fontSize: "0.78rem",
-                      background: closetCategory === category ? "rgba(240,200,90,0.16)" : undefined,
-                      borderColor: closetCategory === category ? "var(--gold)" : undefined
-                    }}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 10 }}>
-                <span style={{ color: "var(--periwinkle-soft)", fontSize: "0.85rem" }}>
-                  {selectedItemIds.length} item{selectedItemIds.length === 1 ? "" : "s"} selected
-                </span>
+            <div className="filter-row">
+              {categories.map((category) => (
                 <button
+                  key={category}
                   type="button"
-                  onClick={handleGenerateOutfit}
-                  className="btn-gold"
-                  disabled={outfitLoading || selectedItemIds.length === 0}
+                  onClick={() => setClosetCategory(category)}
+                  className={`filter-pill${closetCategory === category ? " active" : ""}`}
                 >
-                  {outfitLoading ? "Generating outfit…" : "Generate outfit image"}
+                  {category}
                 </button>
-                <button type="button" onClick={handleClearSelection} className="btn-glass" disabled={selectedItemIds.length === 0}>
-                  Clear selection
-                </button>
-              </div>
-
-              {selectedItems.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-                  {selectedItems.map((item) => (
-                    <span key={item.id} className="chip" style={{ fontSize: "0.72rem" }}>
-                      {item.category}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {outfitError && (
-                <p style={{ margin: 0, color: "var(--blush)", fontSize: "0.82rem" }}>{outfitError}</p>
-              )}
-
-              {outfitImage && (
-                <div style={{ marginTop: 14, borderRadius: 16, overflow: "hidden", border: "1px solid var(--glass-border)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={outfitImage} alt="Final outfit" style={{ width: "100%", display: "block" }} />
-                </div>
-              )}
-            </section>
+              ))}
+            </div>
 
             <ClosetGrid
               items={filteredItems}
@@ -347,10 +336,18 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <TryOnPanel
+              photo={photo}
+              onPhotoCaptured={handlePhotoCaptured}
+              onRetake={handleRetakePhoto}
+              outfitImage={outfitImage}
+              outfitLoading={outfitLoading}
+              outfitError={outfitError}
+            />
             <FairyGodmotherChat
               items={items}
-              fullBodyPhotoUrl={user.fullBodyPhotoUrl}
               onSuggestion={setGodmotherLine}
+              onSuggestItems={handleSuggestItems}
               weather={weather}
               weatherError={weatherError}
               onCityLookup={handleCityLookup}
@@ -358,6 +355,51 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
         </section>
       </motion.div>
+
+      <AnimatePresence>
+        {selectedItemIds.length > 0 && (
+          <motion.div
+            key="outfit-tray"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.25 }}
+            className="glass-panel outfit-tray"
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div className="outfit-tray-thumbs">
+                {selectedItems.map((item) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={item.id} src={item.imageUrl} alt={item.category} className="outfit-tray-thumb" />
+                ))}
+              </div>
+              <span style={{ fontSize: "0.78rem", color: "var(--periwinkle-soft)", whiteSpace: "nowrap" }}>
+                {selectedItemIds.length} selected
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="btn-glass"
+                style={{ flex: 1, padding: "10px 14px", fontSize: "0.82rem" }}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenerateOutfit()}
+                className="btn-gold"
+                disabled={outfitLoading}
+                style={{ flex: 2, padding: "10px 14px", fontSize: "0.82rem" }}
+              >
+                {outfitLoading ? "Generating…" : "Generate outfit"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onAdded={handleItemAdded} />}
     </main>

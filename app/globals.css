@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Quicksand:wght@400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
   --midnight: #1b2145;
@@ -13,8 +13,8 @@
   --glass-bg: rgba(255, 255, 255, 0.14);
   --glass-border: rgba(255, 255, 255, 0.35);
   --shadow-soft: 0 8px 30px rgba(27, 33, 69, 0.25);
-  --font-display: "Cinzel Decorative", serif;
-  --font-body: "Quicksand", sans-serif;
+  --font-display: "Archivo Black", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
 * {
@@ -59,7 +59,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
 }
 
 /* Starfield sparkle layer */
@@ -224,4 +226,104 @@ h3 {
 html.has-custom-cursor,
 html.has-custom-cursor * {
   cursor: none !important;
+}
+
+/* Category filter row — lightweight, no panel chrome */
+.filter-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.filter-pill {
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--periwinkle-soft);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.82rem;
+  border-radius: 999px;
+  padding: 7px 16px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.filter-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
+}
+
+.filter-pill.active {
+  background: rgba(240, 200, 90, 0.16);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Floating outfit tray — appears once items are selected for a look */
+.outfit-tray {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 44;
+  width: min(400px, calc(100vw - 40px));
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.outfit-tray-thumbs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.outfit-tray-thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+}
+
+.select-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  z-index: 2;
+  background: rgba(15, 19, 48, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  color: transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.select-badge.selected {
+  background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+  border-color: var(--gold);
+  color: var(--midnight-deep);
+}
+
+.selectable-photo {
+  cursor: pointer;
+  position: relative;
+}
+
+.selectable-photo:hover .select-badge:not(.selected) {
+  color: var(--cream);
+  background: rgba(15, 19, 48, 0.75);
 }
