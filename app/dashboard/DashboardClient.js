@@ -59,6 +59,13 @@ export default function DashboardClient({ user, initialItems }) {
     setGodmotherLine("Marked as worn — the closet reorders itself, like magic.");
   }
 
+  async function handleDelete(itemId) {
+    const res = await fetch(`/api/closet-items/${itemId}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setItems((prev) => prev.filter((item) => item.id !== itemId));
+    setGodmotherLine("Gone from the closet — poof! ✨");
+  }
+
   return (
     <main style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <SparkleField count={30} />
@@ -157,7 +164,7 @@ export default function DashboardClient({ user, initialItems }) {
             <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 12 }}>
               Your Closet <span style={{ color: "var(--periwinkle-soft)", fontWeight: 400, fontSize: "0.9rem" }}>— least-worn steps to the front</span>
             </h2>
-            <ClosetGrid items={items} onWear={handleWear} />
+            <ClosetGrid items={items} onWear={handleWear} onDelete={handleDelete} />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
