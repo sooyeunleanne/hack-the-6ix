@@ -6,7 +6,7 @@ async function shareItem(item) {
   const text = `Never worn this ${item.category.toLowerCase()} — up for grabs! 🪄`;
   if (navigator.share) {
     try {
-      await navigator.share({ title: "Bibbity Bobbity Boo", text });
+      await navigator.share({ title: "bibbidi-bobbidi-boo", text });
     } catch {
       /* user cancelled — fine */
     }

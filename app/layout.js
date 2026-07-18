@@ -4,8 +4,8 @@ import CustomCursor from "./components/CustomCursor";
 import "./globals.css";
 
 export const metadata = {
-  title: "Bibbity Bobbity Boo",
-  description: "Your closet, enchanted: AI outfit magic."
+  title: "bibbidi-bobbidi-boo",
+  description: "your closet, enchanted: AI outfit magic."
 };
 
 // Runs in the Node.js runtime on every request (unlike middleware.js, which

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   --midnight: #1b2145;
@@ -13,8 +13,8 @@
   --glass-bg: rgba(255, 255, 255, 0.14);
   --glass-border: rgba(255, 255, 255, 0.35);
   --shadow-soft: 0 8px 30px rgba(27, 33, 69, 0.25);
-  --font-display: "Archivo Black", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --font-display: "Playfair Display", serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
 }
 
 * {
@@ -59,8 +59,7 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-optical-sizing: auto;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 

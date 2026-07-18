@@ -30,8 +30,8 @@ export default function LoginPage() {
         <img
           src="/fairy.gif"
           alt=""
-          width={64}
-          height={64}
+          width={150}
+          height={150}
           style={{ filter: "drop-shadow(0 0 18px rgba(240,200,90,0.55))" }}
         />
       </motion.div>
