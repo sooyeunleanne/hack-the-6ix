@@ -1,5 +1,6 @@
 import { auth0 } from "../lib/auth0";
 import { upsertUserByAuth0Id } from "../models/users";
+import CustomCursor from "./components/CustomCursor";
 import "./globals.css";
 
 export const metadata = {
@@ -19,7 +20,10 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <CustomCursor />
+        {children}
+      </body>
     </html>
   );
 }
