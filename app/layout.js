@@ -4,7 +4,7 @@ import CustomCursor from "./components/CustomCursor";
 import "./globals.css";
 
 export const metadata = {
-  title: "Bibbity Bobbity Boo",
+  title: "bibbidi-bobbidi-boo!",
   description: "Your closet, enchanted: AI outfit magic."
 };
 
