@@ -28,7 +28,7 @@ function readImageBitmap(file) {
 export default function UploadModal({ onClose, onAdded }) {
   const [preview, setPreview] = useState(null);
   const [dataUrl, setDataUrl] = useState(null);
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState("Other");
   const [colorInput, setColorInput] = useState("");
   const [colorTags, setColorTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -64,17 +64,17 @@ export default function UploadModal({ onClose, onAdded }) {
 
     setProcessing(true);
     try {
-      const res = await fetch("/api/closet-items", {
+      const res = await fetch("/api/closet-items?preview=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url, category: CATEGORIES[0], colorTags: fallbackColorTags })
+        body: JSON.stringify({ imageUrl: url, category: "Other", colorTags: fallbackColorTags })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Image analysis failed");
       }
       const { item, analysisNote } = await res.json();
-      setCategory(item.category || CATEGORIES[0]);
+      setCategory(item.category || "Other");
       setColorTags(item.color_tags?.length ? item.color_tags : fallbackColorTags);
       setAnalysisSummary({
         category: item.category,
@@ -82,16 +82,6 @@ export default function UploadModal({ onClose, onAdded }) {
         styleTags: item.style_tags || [],
         attributes: item.attributes || {},
         note: analysisNote || null
-      });
-      onAdded({
-        id: item._id,
-        imageUrl: item.image_url,
-        category: item.category,
-        colorTags: item.color_tags || [],
-        styleTags: item.style_tags || [],
-        wearCount: item.wear_count || 0,
-        lastWornAt: item.last_worn_at,
-        createdAt: item.created_at
       });
     } catch (err) {
       setError(err.message);
@@ -123,7 +113,7 @@ export default function UploadModal({ onClose, onAdded }) {
       const res = await fetch("/api/closet-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: dataUrl, category, colorTags })
+        body: JSON.stringify({ imageUrl: dataUrl, category: category || "Other", colorTags })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -140,6 +130,7 @@ export default function UploadModal({ onClose, onAdded }) {
         lastWornAt: item.last_worn_at,
         createdAt: item.created_at
       });
+      onClose();
     } catch (err) {
       setError(err.message);
     } finally {

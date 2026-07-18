@@ -51,3 +51,39 @@ test('analyzeClosetPhoto drops non-hex color tags and falls back when none remai
     global.fetch = originalFetch;
   }
 });
+
+test('analyzeClosetPhoto normalizes inferred categories to the closet taxonomy', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  const originalFetch = global.fetch;
+  global.fetch = mockGeminiText('{"category":"dress","colorTags":["#123456"],"styleTags":["casual"]}');
+
+  try {
+    const result = await analyzeClosetPhoto({
+      dataUrl: 'data:image/png;base64,AAAA',
+      fallbackCategory: 'Other',
+      fallbackColorTags: ['#000000']
+    });
+
+    assert.equal(result.category, 'Dress');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('analyzeClosetPhoto maps shorts to the Bottom category', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  const originalFetch = global.fetch;
+  global.fetch = mockGeminiText('{"category":"Top","colorTags":["#123456"],"styleTags":["shorts","casual"]}');
+
+  try {
+    const result = await analyzeClosetPhoto({
+      dataUrl: 'data:image/png;base64,AAAA',
+      fallbackCategory: 'Other',
+      fallbackColorTags: ['#000000']
+    });
+
+    assert.equal(result.category, 'Bottom');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
