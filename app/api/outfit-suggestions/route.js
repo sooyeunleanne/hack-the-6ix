@@ -49,13 +49,15 @@ export async function POST(request) {
     .join("\n");
 
   const weatherText = weather ? `Current weather: ${weather.temp}°${weather.unit}, ${weather.condition}.` : "Weather unknown.";
+  const locationText = weather?.locationLabel ? `Location: ${weather.locationLabel}.` : "";
 
   const prompt = `You are a warm, encouraging fairy-godmother personal stylist chatting with the user about what to wear.
 ${weatherText}
+${locationText}
 Closet catalog (JSON): ${JSON.stringify(catalog)}
 ${historyText ? `Conversation so far:\n${historyText}\n` : ""}The user just said: "${message}"
 
-Pick 2 to 4 item ids from the catalog that fit what they asked for and the weather. Reply conversationally, in character, 1-3 sentences, naturally referencing the weather when relevant. Respond with ONLY JSON: {"itemIds": ["..."], "reply": "..."}. Only use ids from the catalog.`;
+Pick 2 to 4 item ids from the catalog that fit what they asked for and the weather. Reply conversationally, in character, 1-3 sentences, naturally referencing the weather when relevant. If the user asks what's trending or in style right now, or seems unsure/lost about what to wear, name 1-2 fashion aesthetics or vibes currently popular for the season and location (e.g. clean girl, old money, coquette, quiet luxury, gorpcore, dark academia, y2k revival) and lean your item picks toward that vibe where the catalog allows. Do not use double quotation marks anywhere inside the reply text, including around trend names — write them in plain text instead. Respond with ONLY JSON: {"itemIds": ["..."], "reply": "..."}. Only use ids from the catalog.`;
 
   try {
     const result = await generateJson(prompt);
@@ -64,6 +66,7 @@ Pick 2 to 4 item ids from the catalog that fit what they asked for and the weath
     if (itemIds.length === 0) throw new Error("No valid items chosen");
     return NextResponse.json({ itemIds, reply: result.reply || "Here's what I'd suggest.", mock: false });
   } catch (err) {
+    console.error("outfit-suggestions: Gemini call failed, falling back to mock:", err.message);
     return NextResponse.json({ ...mockReply(items, message, weather), error: err.message });
   }
 }
