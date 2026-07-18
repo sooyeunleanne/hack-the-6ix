@@ -279,7 +279,7 @@ export default function DashboardClient({ user, initialItems }) {
         >
           <div>
             <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
-              Bibbity Bobbity Boo
+              bibbidi-bobbidi-boo!
             </h1>
             <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
               Welcome back, {user.name.split(" ")[0]}

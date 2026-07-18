@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const GREETINGS = [
   (name) => `Hello, ${name}! Your closet awaits, dear.`,
-  () => "Bibbity bobbity boo — let's find something fabulous.",
+  () => "bibbidi-bobbidi-boo! Let's find something fabulous.",
   () => "Chin up, buttercup. Even glass slippers need a good outfit."
 ];
 

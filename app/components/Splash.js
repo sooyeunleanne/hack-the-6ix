@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "./SparkleField";
 
-const TITLE = "Bibbity Bobbity Boo";
+const TITLE = "bibbidi-bobbidi-boo!";
 
 const letterVariants = {
   hidden: { opacity: 0, y: 18, rotate: -6 },
