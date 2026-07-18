@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 import { auth0 } from "../../../../lib/auth0";
+import { getUserByAuth0Id } from "../../../../models/users";
 import {
   getClosetItemById,
   updateClosetItemTags,
   deleteClosetItem
 } from "../../../../models/closetItems";
 
-export async function GET(request, { params }) {
+async function requireUser() {
   const session = await auth0.getSession();
-  if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!session) return null;
+  return getUserByAuth0Id(session.user.sub);
+}
 
-  const item = await getClosetItemById(params.id);
+export async function GET(request, { params }) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  const item = await getClosetItemById(params.id, user._id);
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ item });
 }
@@ -18,18 +25,20 @@ export async function GET(request, { params }) {
 // PATCH body: { category?, colorTags? } — e.g. user correcting an
 // auto-tag suggestion.
 export async function PATCH(request, { params }) {
-  const session = await auth0.getSession();
-  if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const body = await request.json();
-  await updateClosetItemTags(params.id, body);
+  const updated = await updateClosetItemTags(params.id, user._id, body);
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(request, { params }) {
-  const session = await auth0.getSession();
-  if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  await deleteClosetItem(params.id);
+  const deleted = await deleteClosetItem(params.id, user._id);
+  if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

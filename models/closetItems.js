@@ -23,23 +23,34 @@ export async function getClosetItemsByUser(userId, { sortByWear = false } = {}) 
   return cursor.toArray();
 }
 
-export async function getClosetItemById(itemId) {
+export async function getClosetItemById(itemId, userId) {
   const db = await getDb();
-  return db.collection("closet_items").findOne({ _id: new ObjectId(itemId) });
+  return db.collection("closet_items").findOne({
+    _id: new ObjectId(itemId),
+    user_id: new ObjectId(userId)
+  });
 }
 
-export async function updateClosetItemTags(itemId, { category, colorTags } = {}) {
+export async function updateClosetItemTags(itemId, userId, { category, colorTags } = {}) {
   const db = await getDb();
   const update = {};
   if (category !== undefined) update.category = category;
   if (colorTags !== undefined) update.color_tags = colorTags;
   if (Object.keys(update).length === 0) return;
-  await db.collection("closet_items").updateOne({ _id: new ObjectId(itemId) }, { $set: update });
+  const result = await db.collection("closet_items").updateOne(
+    { _id: new ObjectId(itemId), user_id: new ObjectId(userId) },
+    { $set: update }
+  );
+  return result.matchedCount > 0;
 }
 
-export async function deleteClosetItem(itemId) {
+export async function deleteClosetItem(itemId, userId) {
   const db = await getDb();
-  await db.collection("closet_items").deleteOne({ _id: new ObjectId(itemId) });
+  const result = await db.collection("closet_items").deleteOne({
+    _id: new ObjectId(itemId),
+    user_id: new ObjectId(userId)
+  });
+  return result.deletedCount > 0;
 }
 
 export async function markWorn(itemId) {
