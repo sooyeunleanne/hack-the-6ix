@@ -290,11 +290,10 @@ export default function DashboardClient({ user, initialItems }) {
               <img
                 src="/bbblogo.jpg"
                 alt=""
-                width={48}
-                height={48}
-                style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(240,200,90,0.4)" }}
+                width={200}
+                height={200}
               />
-              <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
+              <h1 className="gold-text" style={{ fontSize: "3rem", margin: 0 }}>
                 bibbidi-bobbidi-boo!
               </h1>
             </div>
