@@ -56,13 +56,13 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
           ? "1px dashed var(--periwinkle-soft)"
           : "1px solid var(--glass-border)",
         background: matchGood
-          ? "linear-gradient(155deg, rgba(176,183,230,0.4), rgba(176,183,230,0.08))"
+          ? "linear-gradient(155deg, rgba(176,183,230,0.2), rgba(176,183,230,0.05))"
           : matchSoso
-          ? "rgba(176,183,230,0.12)"
+          ? "rgba(176,183,230,0.1)"
           : undefined,
         boxShadow: [
           isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : null,
-          matchGood ? "0 0 26px rgba(176,183,230,0.6)" : null,
+          matchGood ? "0 0 18px rgba(176,183,230,0.4)" : null,
           !isFrontOfCloset && !matchGood ? "var(--shadow-soft)" : null
         ]
           .filter(Boolean)
@@ -70,26 +70,6 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         position: "relative"
       }}
     >
-      {matchGood && (
-        <span
-          className="chip"
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 40,
-            background: "linear-gradient(135deg, var(--periwinkle), #6b74c9)",
-            color: "#fff",
-            border: "none",
-            fontWeight: 700,
-            fontSize: "0.68rem",
-            zIndex: 1,
-            boxShadow: "0 0 10px rgba(176,183,230,0.7)"
-          }}
-        >
-          ✨ great pair
-        </span>
-      )}
-
       {isFrontOfCloset && (
         <span
           className="chip"
@@ -191,7 +171,7 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
               color: matchGood ? "var(--periwinkle)" : "var(--periwinkle-soft)"
             }}
           >
-            {matchGood ? "✨ pairs with" : "goes okay with"} {colorMatch.label}
+            {matchGood ? "Pairs well with" : "Goes okay with"} {colorMatch.label}
           </span>
         )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
