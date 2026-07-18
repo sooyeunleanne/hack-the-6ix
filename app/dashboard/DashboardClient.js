@@ -5,16 +5,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "../components/SparkleField";
 import ClosetGrid from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
-import DonateNudges from "../components/DonateNudges";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import ShoppingListPanel from "../components/ShoppingListPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
-const DONATE_STALE_DAYS = 45;
-
 function sortByWear(items) {
   return [...items].sort((a, b) => a.wearCount - b.wearCount);
+}
+
+// Fire-and-forget — saves the resolved location so future visits can skip
+// re-prompting for geolocation. location is { lat, lon } or { city }.
+function persistLocation(location) {
+  fetch("/api/users/location", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ location })
+  }).catch(() => {});
 }
 
 export default function DashboardClient({ user, initialItems }) {
@@ -87,7 +94,23 @@ export default function DashboardClient({ user, initialItems }) {
 
   // Fetched once here (not in FairyGodmotherChat) so both the header and
   // the chat share one result instead of triggering two geolocation prompts.
+  // Saved location (from a previous visit) takes priority over a fresh
+  // geolocation prompt; a freshly detected location gets persisted for next time.
   useEffect(() => {
+    if (user.location) {
+      (async () => {
+        try {
+          const w = user.location.city
+            ? await getWeatherByCity(user.location.city)
+            : await getWeatherByCoords(user.location.lat, user.location.lon);
+          setWeather(w);
+        } catch {
+          setWeatherError("lookup-failed");
+        }
+      })();
+      return;
+    }
+
     if (!navigator.geolocation) {
       setWeatherError("no-geo");
       return;
@@ -97,6 +120,7 @@ export default function DashboardClient({ user, initialItems }) {
         try {
           const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
           setWeather(w);
+          persistLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         } catch {
           setWeatherError("lookup-failed");
         }
@@ -104,6 +128,7 @@ export default function DashboardClient({ user, initialItems }) {
       () => setWeatherError("denied"),
       { timeout: 8000 }
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleCityLookup(city) {
@@ -112,17 +137,11 @@ export default function DashboardClient({ user, initialItems }) {
       const w = await getWeatherByCity(city.trim());
       setWeather(w);
       setWeatherError(null);
+      persistLocation({ city: city.trim() });
     } catch (err) {
       setWeatherError(err.message);
     }
   }
-
-  const donateCandidates = useMemo(() => {
-    const cutoff = Date.now() - DONATE_STALE_DAYS * 24 * 60 * 60 * 1000;
-    return items.filter(
-      (item) => item.wearCount === 0 && item.createdAt && new Date(item.createdAt).getTime() < cutoff
-    );
-  }, [items]);
 
   function handleItemAdded(newItem) {
     setItems((prev) => sortByWear([...prev, newItem]));
@@ -253,8 +272,6 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
         </header>
 
-        <DonateNudges candidates={donateCandidates} />
-
         <section className="dashboard-grid" style={{ marginTop: 24 }}>
           <div>
             <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 12 }}>
@@ -333,7 +350,7 @@ export default function DashboardClient({ user, initialItems }) {
             <FairyGodmotherChat
               items={items}
               fullBodyPhotoUrl={user.fullBodyPhotoUrl}
-              savedLocation={user.location} onSuggestion={setGodmotherLine}
+              onSuggestion={setGodmotherLine}
               weather={weather}
               weatherError={weatherError}
               onCityLookup={handleCityLookup}
