@@ -6,7 +6,6 @@ import SparkleField from "../components/SparkleField";
 import ClosetGrid from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
-import ShoppingListPanel from "../components/ShoppingListPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
@@ -355,7 +354,6 @@ export default function DashboardClient({ user, initialItems }) {
               weatherError={weatherError}
               onCityLookup={handleCityLookup}
             />
-            <ShoppingListPanel items={items} onSuggestion={setGodmotherLine} />
           </div>
         </section>
       </motion.div>
