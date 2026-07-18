@@ -166,10 +166,10 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
   }
 
   return (
-    <section className="glass-panel" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+    <section className="glass-panel" style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: "1.05rem", color: "var(--cream)" }}>
             🧚 Ask Your Fairy Godmother
           </h3>
           <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
@@ -191,10 +191,10 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 10,
+          gap: 12,
           maxHeight: 320,
           overflowY: "auto",
-          paddingRight: 4
+          paddingRight: 6
         }}
       >
         {messages.map((m) => (
@@ -208,7 +208,7 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
               background: m.role === "user" ? "rgba(240,200,90,0.18)" : "rgba(255,255,255,0.08)",
               border: `1px solid ${m.role === "user" ? "rgba(240,200,90,0.4)" : "var(--glass-border)"}`,
               borderRadius: 14,
-              padding: "9px 13px"
+              padding: "10px 15px"
             }}
           >
             {m.mock && (
@@ -240,7 +240,7 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 10 }}>
         <button
           onClick={handleMicClick}
           className="btn-glass"
