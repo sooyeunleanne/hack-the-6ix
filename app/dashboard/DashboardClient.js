@@ -8,8 +8,10 @@ import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import FairyGodmother from "../components/FairyGodmother";
 import TryOnPanel from "../components/TryOnPanel";
+import ClosetHealthCard from "../components/ClosetHealthCard";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 import { suggestColorMatches } from "../../lib/colorMatching";
+import { computeClosetHealth } from "../../lib/sustainability";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -81,6 +83,8 @@ export default function DashboardClient({ user, initialItems }) {
     () => suggestColorMatches(selectedItems, items),
     [selectedItems, items]
   );
+
+  const closetHealth = useMemo(() => computeClosetHealth(items), [items]);
 
   function handleSelectToggle(itemId) {
     setSelectedItemIds((prev) =>
@@ -332,6 +336,8 @@ export default function DashboardClient({ user, initialItems }) {
             </a>
           </div>
         </header>
+
+        <ClosetHealthCard health={closetHealth} />
 
         <section className="dashboard-grid" style={{ marginTop: 32 }}>
           <div>
