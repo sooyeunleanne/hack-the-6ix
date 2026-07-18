@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "../components/SparkleField";
-import ClosetGrid, { CATEGORY_ORDER, LEAST_WORN_COUNT } from "../components/ClosetGrid";
+import ClosetGrid, { getLeastWornIds } from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import FairyGodmother from "../components/FairyGodmother";
@@ -54,21 +54,10 @@ export default function DashboardClient({ user, initialItems }) {
     [items, selectedItemIds]
   );
 
-  // Mirrors ClosetGrid's own per-category grouping so "least worn" here
-  // always matches the items actually badged "Least worn" on the tiles.
-  const leastWornIds = useMemo(() => {
-    const grouped = {};
-    CATEGORY_ORDER.forEach((c) => (grouped[c] = []));
-    items.forEach((item) => {
-      const category = CATEGORY_ORDER.includes(item.category) ? item.category : "Other";
-      grouped[category].push(item);
-    });
-    const ids = new Set();
-    CATEGORY_ORDER.forEach((c) => {
-      grouped[c].slice(0, LEAST_WORN_COUNT).forEach((item) => ids.add(item.id));
-    });
-    return ids;
-  }, [items]);
+  // Computed from the full, unfiltered closet so it stays correct regardless
+  // of which category/least-worn filters are currently narrowing the view —
+  // see the comment on ClosetGrid's leastWornIds prop for why.
+  const leastWornIds = useMemo(() => getLeastWornIds(items), [items]);
 
   const filteredItems = useMemo(() => {
     let result = closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory);
@@ -376,6 +365,7 @@ export default function DashboardClient({ user, initialItems }) {
               selectedItemIds={selectedItemIds}
               onSelectToggle={handleSelectToggle}
               colorMatches={colorMatches}
+              leastWornIds={leastWornIds}
             />
           </div>
 
