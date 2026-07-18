@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { nearestColorName } from "../../lib/colorNames";
 
-export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete }) {
+export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle }) {
   const [wearing, setWearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -25,6 +25,10 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
     } finally {
       setDeleting(false);
     }
+  }
+
+  function handleSelectToggle() {
+    onSelectToggle?.(item.id);
   }
 
   return (
@@ -132,6 +136,20 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         style={{ fontSize: "0.78rem", padding: "8px 12px" }}
       >
         {wearing ? "Marking…" : "I wore this today"}
+      </button>
+
+      <button
+        onClick={handleSelectToggle}
+        type="button"
+        className="btn-glass"
+        style={{
+          fontSize: "0.78rem",
+          padding: "8px 12px",
+          background: selected ? "rgba(240,200,90,0.18)" : undefined,
+          color: selected ? "var(--midnight-deep)" : undefined
+        }}
+      >
+        {selected ? "Remove from outfit" : "Add to outfit"}
       </button>
     </motion.div>
   );
