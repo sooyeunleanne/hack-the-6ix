@@ -6,17 +6,10 @@ import { motion } from "framer-motion";
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
-function persistLocation(location) {
-  fetch("/api/users/location", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ location })
-  }).catch(() => {});
-}
-
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocation, onSuggestion }) {
-  const [weather, setWeather] = useState(null);
-  const [weatherError, setWeatherError] = useState(null);
+// weather/weatherError/onCityLookup are lifted up to DashboardClient so the
+// header and this chat share one geolocation lookup (and one saved-location
+// persistence flow) instead of each prompting the browser separately.
+export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion, weather, weatherError, onCityLookup }) {
   const [cityInput, setCityInput] = useState("");
 
   const [cameraOn, setCameraOn] = useState(false);
@@ -34,40 +27,15 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
   const [sending, setSending] = useState(false);
   const logRef = useRef(null);
 
-  // Weather lookup — saved location first, then geolocation, then city fallback.
-  useEffect(() => {
-    if (savedLocation) {
-      (async () => {
-        try {
-          const w = savedLocation.city
-            ? await getWeatherByCity(savedLocation.city)
-            : await getWeatherByCoords(savedLocation.lat, savedLocation.lon);
-          setWeather(w);
-        } catch {
-          setWeatherError("lookup-failed");
-        }
-      })();
-      return;
-    }
-    if (!navigator.geolocation) {
-      setWeatherError("no-geo");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
-          setWeather(w);
-          persistLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        } catch {
-          setWeatherError("lookup-failed");
-        }
-      },
-      () => setWeatherError("denied"),
-      { timeout: 8000 }
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Voice in (ElevenLabs speech-to-text, falling back to the browser's own
+  // SpeechRecognition if no key is configured) and voice out (whether chat
+  // replies get spoken via the FairyGodmother widget, toggleable per user).
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceReplyEnabled, setVoiceReplyEnabled] = useState(true);
+  const micRecorderRef = useRef(null);
+  const micChunksRef = useRef([]);
+  const micStreamRef = useRef(null);
 
   useEffect(() => {
     const greeting = weather
@@ -85,6 +53,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       if (countdownRef.current) clearInterval(countdownRef.current);
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
@@ -100,6 +69,77 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
 
   function handleCityLookup() {
     onCityLookup?.(cityInput);
+  }
+
+  // Browser-native speech recognition — used only when ElevenLabs isn't
+  // configured (mirrors the speechSynthesis fallback pattern in FairyGodmother.js).
+  function startBrowserSpeechRecognition() {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      alert("Voice input isn't supported in this browser.");
+      return;
+    }
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript;
+      if (transcript?.trim()) handleSend(transcript);
+    };
+    recognition.onerror = () => setRecording(false);
+    recognition.onend = () => setRecording(false);
+    setRecording(true);
+    recognition.start();
+  }
+
+  async function transcribeAndSend(blob) {
+    setTranscribing(true);
+    try {
+      const form = new FormData();
+      form.append("audio", blob, "recording.webm");
+      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.text?.trim()) handleSend(data.text);
+      } else {
+        startBrowserSpeechRecognition();
+      }
+    } catch {
+      startBrowserSpeechRecognition();
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function startVoiceInput() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      micChunksRef.current = [];
+      recorder.ondataavailable = (e) => micChunksRef.current.push(e.data);
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+        const blob = new Blob(micChunksRef.current, { type: "audio/webm" });
+        transcribeAndSend(blob);
+      };
+      micRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      alert("Couldn't access your microphone — check browser permissions.");
+    }
+  }
+
+  function handleMicClick() {
+    if (recording) {
+      micRecorderRef.current?.stop();
+      setRecording(false);
+    } else {
+      startVoiceInput();
+    }
   }
 
   async function startCamera() {
@@ -196,8 +236,8 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
     }
   }
 
-  async function handleSend() {
-    const text = input.trim();
+  async function handleSend(textOverride) {
+    const text = (textOverride ?? input).trim();
     if (!text || sending) return;
     setInput("");
     const userMsg = { id: nextId(), role: "user", text };
@@ -222,7 +262,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
         mock: data.mock
       };
       setMessages((prev) => [...prev, godmotherMsg]);
-      onSuggestion?.(data.reply);
+      if (voiceReplyEnabled) onSuggestion?.(data.reply);
 
       if (photo && data.itemIds?.length) {
         runTryOn(godmotherMsg.id, data.itemIds);
@@ -240,13 +280,23 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
 
   return (
     <section className="glass-panel" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>
-        <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
-          🧚 Ask Your Fairy Godmother
-        </h3>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
-          Chat for outfit picks — weather-aware, and shown on you live.
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
+            🧚 Ask Your Fairy Godmother
+          </h3>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
+            Chat for outfit picks — weather-aware, and shown on you live.
+          </p>
+        </div>
+        <button
+          onClick={() => setVoiceReplyEnabled((v) => !v)}
+          className="btn-glass"
+          style={{ padding: "6px 10px", fontSize: "0.7rem", whiteSpace: "nowrap" }}
+          title="Toggle whether the godmother speaks her replies aloud"
+        >
+          {voiceReplyEnabled ? "🔊 Talk back: on" : "🔇 Talk back: off"}
+        </button>
       </div>
 
       <div>
@@ -385,15 +435,28 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={handleMicClick}
+          className="btn-glass"
+          disabled={transcribing || sending}
+          title={recording ? "Stop recording" : "Speak your message"}
+          style={{
+            padding: "0 14px",
+            borderColor: recording ? "var(--blush)" : undefined,
+            background: recording ? "rgba(247,201,216,0.18)" : undefined
+          }}
+        >
+          {transcribing ? "…" : recording ? "⏹️" : "🎙️"}
+        </button>
         <input
           className="text-input"
-          placeholder="Something cozy for tonight…"
+          placeholder={recording ? "Listening…" : "Something cozy for tonight…"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           disabled={sending}
         />
-        <button onClick={handleSend} className="btn-gold" disabled={sending || !input.trim()} style={{ whiteSpace: "nowrap" }}>
+        <button onClick={() => handleSend()} className="btn-gold" disabled={sending || !input.trim()} style={{ whiteSpace: "nowrap" }}>
           {sending ? "…" : "Send"}
         </button>
       </div>
