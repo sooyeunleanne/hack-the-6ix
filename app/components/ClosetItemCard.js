@@ -47,17 +47,26 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         borderRadius: 18,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
-        border: selected
-          ? "2px solid var(--gold)"
-          : isFrontOfCloset
-          ? "1px solid rgba(207,224,251,0.5)"
+        gap: 8,
+        border: isFrontOfCloset
+          ? "1px solid var(--gold)"
+          : matchGood
+          ? "2px solid var(--periwinkle)"
+          : matchSoso
+          ? "1px dashed var(--periwinkle-soft)"
           : "1px solid var(--glass-border)",
-        boxShadow: selected
-          ? "0 0 26px rgba(240,200,90,0.55)"
-          : isFrontOfCloset
-          ? "0 0 18px rgba(207,224,251,0.28)"
-          : "var(--shadow-soft)",
+        background: matchGood
+          ? "linear-gradient(155deg, rgba(176,183,230,0.4), rgba(176,183,230,0.08))"
+          : matchSoso
+          ? "rgba(176,183,230,0.12)"
+          : undefined,
+        boxShadow: [
+          isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : null,
+          matchGood ? "0 0 26px rgba(176,183,230,0.6)" : null,
+          !isFrontOfCloset && !matchGood ? "var(--shadow-soft)" : null
+        ]
+          .filter(Boolean)
+          .join(", "),
         position: "relative"
       }}
     >
