@@ -6,10 +6,17 @@ import { motion } from "framer-motion";
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
-// weather/weatherError/onCityLookup are lifted up to DashboardClient so the
-// header and this chat share one geolocation lookup instead of each
-// prompting the browser separately.
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion, weather, weatherError, onCityLookup }) {
+function persistLocation(location) {
+  fetch("/api/users/location", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ location })
+  }).catch(() => {});
+}
+
+export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocation, onSuggestion }) {
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState(null);
   const [cityInput, setCityInput] = useState("");
 
   const [cameraOn, setCameraOn] = useState(false);
@@ -26,6 +33,41 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const logRef = useRef(null);
+
+  // Weather lookup — saved location first, then geolocation, then city fallback.
+  useEffect(() => {
+    if (savedLocation) {
+      (async () => {
+        try {
+          const w = savedLocation.city
+            ? await getWeatherByCity(savedLocation.city)
+            : await getWeatherByCoords(savedLocation.lat, savedLocation.lon);
+          setWeather(w);
+        } catch {
+          setWeatherError("lookup-failed");
+        }
+      })();
+      return;
+    }
+    if (!navigator.geolocation) {
+      setWeatherError("no-geo");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
+          setWeather(w);
+          persistLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        } catch {
+          setWeatherError("lookup-failed");
+        }
+      },
+      () => setWeatherError("denied"),
+      { timeout: 8000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const greeting = weather
@@ -206,22 +248,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
           Chat for outfit picks — weather-aware, and shown on you live.
         </p>
       </div>
-
-      {weatherError && !weather && (
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            className="text-input"
-            placeholder="Your city (for weather-aware picks)"
-            value={cityInput}
-            onChange={(e) => setCityInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCityLookup()}
-            style={{ fontSize: "0.85rem" }}
-          />
-          <button onClick={handleCityLookup} className="btn-glass" style={{ padding: "8px 16px", fontSize: "0.8rem" }}>
-            Go
-          </button>
-        </div>
-      )}
 
       <div>
         {!photo && !cameraOn && (

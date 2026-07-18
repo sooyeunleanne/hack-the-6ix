@@ -3,7 +3,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import ClosetItemCard from "./ClosetItemCard";
 
-export default function ClosetGrid({ items, onWear, onDelete }) {
+const CATEGORY_ORDER = ["Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"];
+
+export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle }) {
   if (items.length === 0) {
     return (
       <div
@@ -16,17 +18,54 @@ export default function ClosetGrid({ items, onWear, onDelete }) {
     );
   }
 
-  // Least-worn items are sorted first by the caller — the front 3 glow as
-  // "front of closet," visually surfacing the wear-reorder thesis.
-  const frontCount = Math.min(3, items.length);
+  const grouped = CATEGORY_ORDER.reduce((acc, category) => {
+    acc[category] = [];
+    return acc;
+  }, {});
+
+  items.forEach((item) => {
+    const category = CATEGORY_ORDER.includes(item.category) ? item.category : "Other";
+    grouped[category].push(item);
+  });
 
   return (
-    <motion.div layout className="closet-grid">
-      <AnimatePresence>
-        {items.map((item, i) => (
-          <ClosetItemCard key={item.id} item={item} isFrontOfCloset={i < frontCount} onWear={onWear} onDelete={onDelete} />
-        ))}
-      </AnimatePresence>
-    </motion.div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {CATEGORY_ORDER.map((category) => {
+        const categoryItems = grouped[category];
+        if (categoryItems.length === 0) return null;
+
+        const frontCount = Math.min(3, categoryItems.length);
+        return (
+          <section key={category}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", color: "var(--cream)" }}>{category}</h3>
+                <p style={{ margin: "4px 0 0", color: "var(--periwinkle-soft)", fontSize: "0.8rem" }}>
+                  {categoryItems.length} item{categoryItems.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <span className="chip" style={{ padding: "5px 10px", fontSize: "0.75rem" }}>
+                {categoryItems.filter((item) => selectedItemIds.includes(item.id)).length} selected
+              </span>
+            </div>
+            <motion.div layout className="closet-grid">
+              <AnimatePresence>
+                {categoryItems.map((item, i) => (
+                  <ClosetItemCard
+                    key={item.id}
+                    item={item}
+                    isFrontOfCloset={i < frontCount}
+                    onWear={onWear}
+                    onDelete={onDelete}
+                    selected={selectedItemIds.includes(item.id)}
+                    onSelectToggle={onSelectToggle}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </section>
+        );
+      })}
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { extractColorTagsFromPixelData } from "../../lib/colorTags";
+import { nearestColorName } from "../../lib/colorNames";
 
 const CATEGORIES = ["Top", "Bottom", "Dress", "Outerwear", "Shoes", "Accessory", "Bag", "Other"];
 
@@ -27,7 +28,7 @@ function readImageBitmap(file) {
 export default function UploadModal({ onClose, onAdded }) {
   const [preview, setPreview] = useState(null);
   const [dataUrl, setDataUrl] = useState(null);
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState("Other");
   const [colorInput, setColorInput] = useState("");
   const [colorTags, setColorTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -63,17 +64,17 @@ export default function UploadModal({ onClose, onAdded }) {
 
     setProcessing(true);
     try {
-      const res = await fetch("/api/closet-items", {
+      const res = await fetch("/api/closet-items?preview=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url, category: CATEGORIES[0], colorTags: fallbackColorTags })
+        body: JSON.stringify({ imageUrl: url, category: "Other", colorTags: fallbackColorTags })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Image analysis failed");
       }
       const { item, analysisNote } = await res.json();
-      setCategory(item.category || CATEGORIES[0]);
+      setCategory(item.category || "Other");
       setColorTags(item.color_tags?.length ? item.color_tags : fallbackColorTags);
       setAnalysisSummary({
         category: item.category,
@@ -81,16 +82,6 @@ export default function UploadModal({ onClose, onAdded }) {
         styleTags: item.style_tags || [],
         attributes: item.attributes || {},
         note: analysisNote || null
-      });
-      onAdded({
-        id: item._id,
-        imageUrl: item.image_url,
-        category: item.category,
-        colorTags: item.color_tags || [],
-        styleTags: item.style_tags || [],
-        wearCount: item.wear_count || 0,
-        lastWornAt: item.last_worn_at,
-        createdAt: item.created_at
       });
     } catch (err) {
       setError(err.message);
@@ -100,11 +91,10 @@ export default function UploadModal({ onClose, onAdded }) {
   }
 
   function addColorTag() {
-    const tag = colorInput.trim().toLowerCase();
-    if (tag && !colorTags.includes(tag)) {
+    const tag = colorInput.trim().toUpperCase();
+    if (/^#[0-9A-F]{6}$/.test(tag) && !colorTags.includes(tag)) {
       setColorTags([...colorTags, tag]);
     }
-    setColorInput("");
   }
 
   function removeColorTag(tag) {
@@ -123,7 +113,7 @@ export default function UploadModal({ onClose, onAdded }) {
       const res = await fetch("/api/closet-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: dataUrl, category, colorTags })
+        body: JSON.stringify({ imageUrl: dataUrl, category: category || "Other", colorTags })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -140,6 +130,7 @@ export default function UploadModal({ onClose, onAdded }) {
         lastWornAt: item.last_worn_at,
         createdAt: item.created_at
       });
+      onClose();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -227,7 +218,10 @@ export default function UploadModal({ onClose, onAdded }) {
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {(analysisSummary.colorTags || []).map((tag) => (
-                <span key={tag} className="chip">{tag}</span>
+                <span key={tag} className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                  {nearestColorName(tag)}
+                </span>
               ))}
               {(analysisSummary.styleTags || []).map((tag) => (
                 <span key={tag} className="chip" style={{ background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>#{tag}</span>
@@ -256,28 +250,23 @@ export default function UploadModal({ onClose, onAdded }) {
 
         <div>
           <label className="field-label">Color tags</label>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
-              className="text-input"
-              placeholder="e.g. periwinkle"
-              value={colorInput}
+              type="color"
+              value={/^#[0-9A-Fa-f]{6}$/.test(colorInput) ? colorInput : "#B0B7E6"}
               onChange={(e) => setColorInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addColorTag();
-                }
-              }}
+              style={{ width: 44, height: 40, padding: 0, border: "none", borderRadius: 10, background: "none", cursor: "pointer" }}
             />
             <button type="button" onClick={addColorTag} className="btn-glass" style={{ padding: "8px 16px" }}>
-              Add
+              Add color
             </button>
           </div>
           {colorTags.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
               {colorTags.map((tag) => (
-                <span key={tag} className="chip">
-                  {tag}
+                <span key={tag} className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                  {nearestColorName(tag)}
                   <button
                     type="button"
                     onClick={() => removeColorTag(tag)}

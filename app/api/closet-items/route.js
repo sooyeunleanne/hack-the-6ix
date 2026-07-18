@@ -29,6 +29,7 @@ export async function POST(request) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const preview = request.nextUrl.searchParams.get("preview") === "true";
   const body = await request.json();
   const { imageUrl, category, colorTags } = body;
   if (!imageUrl) {
@@ -63,6 +64,17 @@ export async function POST(request) {
     resolvedStyleTags = [];
     resolvedAttributes = {};
     analysisNote = err.message || "Image analysis failed.";
+  }
+
+  if (preview) {
+    const item = {
+      image_url: imageUrl,
+      category: resolvedCategory,
+      color_tags: resolvedColorTags,
+      style_tags: resolvedStyleTags,
+      attributes: resolvedAttributes
+    };
+    return NextResponse.json({ item, analysisNote }, { status: 200 });
   }
 
   const item = await createClosetItem(user._id, {

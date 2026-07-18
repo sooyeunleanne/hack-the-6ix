@@ -24,6 +24,61 @@ export default function DashboardClient({ user, initialItems }) {
   const [godmotherLine, setGodmotherLine] = useState(null);
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(null);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [closetCategory, setClosetCategory] = useState("All");
+  const [outfitImage, setOutfitImage] = useState(null);
+  const [outfitLoading, setOutfitLoading] = useState(false);
+  const [outfitError, setOutfitError] = useState(null);
+
+  const categories = useMemo(
+    () => ["All", "Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"],
+    []
+  );
+
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedItemIds.includes(item.id)),
+    [items, selectedItemIds]
+  );
+
+  const filteredItems = useMemo(
+    () => (closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory)),
+    [items, closetCategory]
+  );
+
+  function handleSelectToggle(itemId) {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  }
+
+  async function handleGenerateOutfit() {
+    if (selectedItemIds.length === 0) return;
+
+    setOutfitLoading(true);
+    setOutfitError(null);
+    setOutfitImage(null);
+
+    try {
+      const res = await fetch("/api/tryon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemIds: selectedItemIds })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Looks like try-on failed.");
+      setOutfitImage(data.generatedImageUrl);
+    } catch (err) {
+      setOutfitError(err.message);
+    } finally {
+      setOutfitLoading(false);
+    }
+  }
+
+  function handleClearSelection() {
+    setSelectedItemIds([]);
+    setOutfitImage(null);
+    setOutfitError(null);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setShowIntro(false), 1500);
@@ -205,14 +260,80 @@ export default function DashboardClient({ user, initialItems }) {
             <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 12 }}>
               Your Closet <span style={{ color: "var(--periwinkle-soft)", fontWeight: 400, fontSize: "0.9rem" }}>— least-worn steps to the front</span>
             </h2>
-            <ClosetGrid items={items} onWear={handleWear} onDelete={handleDelete} />
+
+            <section className="glass-panel" style={{ padding: 18, marginBottom: 20 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setClosetCategory(category)}
+                    className="btn-glass"
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: "0.78rem",
+                      background: closetCategory === category ? "rgba(240,200,90,0.16)" : undefined,
+                      borderColor: closetCategory === category ? "var(--gold)" : undefined
+                    }}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 10 }}>
+                <span style={{ color: "var(--periwinkle-soft)", fontSize: "0.85rem" }}>
+                  {selectedItemIds.length} item{selectedItemIds.length === 1 ? "" : "s"} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={handleGenerateOutfit}
+                  className="btn-gold"
+                  disabled={outfitLoading || selectedItemIds.length === 0}
+                >
+                  {outfitLoading ? "Generating outfit…" : "Generate outfit image"}
+                </button>
+                <button type="button" onClick={handleClearSelection} className="btn-glass" disabled={selectedItemIds.length === 0}>
+                  Clear selection
+                </button>
+              </div>
+
+              {selectedItems.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                  {selectedItems.map((item) => (
+                    <span key={item.id} className="chip" style={{ fontSize: "0.72rem" }}>
+                      {item.category}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {outfitError && (
+                <p style={{ margin: 0, color: "var(--blush)", fontSize: "0.82rem" }}>{outfitError}</p>
+              )}
+
+              {outfitImage && (
+                <div style={{ marginTop: 14, borderRadius: 16, overflow: "hidden", border: "1px solid var(--glass-border)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={outfitImage} alt="Final outfit" style={{ width: "100%", display: "block" }} />
+                </div>
+              )}
+            </section>
+
+            <ClosetGrid
+              items={filteredItems}
+              onWear={handleWear}
+              onDelete={handleDelete}
+              selectedItemIds={selectedItemIds}
+              onSelectToggle={handleSelectToggle}
+            />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <FairyGodmotherChat
               items={items}
               fullBodyPhotoUrl={user.fullBodyPhotoUrl}
-              onSuggestion={setGodmotherLine}
+              savedLocation={user.location} onSuggestion={setGodmotherLine}
               weather={weather}
               weatherError={weatherError}
               onCityLookup={handleCityLookup}

@@ -32,7 +32,8 @@ export default async function DashboardPage() {
         name: session.user.name || session.user.email || "Cinderella",
         email: session.user.email || null,
         picture: session.user.picture || null,
-        fullBodyPhotoUrl: user.full_body_photo_url || null
+        fullBodyPhotoUrl: user.full_body_photo_url || null,
+        location: user.location || null
       }}
       initialItems={items.map(serializeItem)}
     />
