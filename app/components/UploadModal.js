@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { extractColorTagsFromPixelData } from "../../lib/colorTags";
 
 const CATEGORIES = ["Top", "Bottom", "Dress", "Outerwear", "Shoes", "Accessory", "Bag", "Other"];
 
@@ -14,6 +15,15 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function readImageBitmap(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function UploadModal({ onClose, onAdded }) {
   const [preview, setPreview] = useState(null);
   const [dataUrl, setDataUrl] = useState(null);
@@ -21,14 +31,72 @@ export default function UploadModal({ onClose, onAdded }) {
   const [colorInput, setColorInput] = useState("");
   const [colorTags, setColorTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [analysisSummary, setAnalysisSummary] = useState(null);
   const fileRef = useRef(null);
 
   async function handleFile(file) {
     if (!file) return;
+    setError(null);
+    setAnalysisSummary(null);
     const url = await readFileAsDataUrl(file);
     setDataUrl(url);
     setPreview(url);
+
+    let fallbackColorTags = [];
+    try {
+      const img = await readImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const width = Math.min(img.naturalWidth, 120);
+      const height = Math.min(img.naturalHeight, 120);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      const pixelData = ctx.getImageData(0, 0, width, height).data;
+      fallbackColorTags = extractColorTagsFromPixelData(pixelData, width, height);
+      setColorTags(fallbackColorTags);
+    } catch (err) {
+      fallbackColorTags = [];
+    }
+
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/closet-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url, category: CATEGORIES[0], colorTags: fallbackColorTags })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Image analysis failed");
+      }
+      const { item, analysisNote } = await res.json();
+      setCategory(item.category || CATEGORIES[0]);
+      setColorTags(item.color_tags?.length ? item.color_tags : fallbackColorTags);
+      setAnalysisSummary({
+        category: item.category,
+        colorTags: item.color_tags || [],
+        styleTags: item.style_tags || [],
+        attributes: item.attributes || {},
+        note: analysisNote || null
+      });
+      onAdded({
+        id: item._id,
+        imageUrl: item.image_url,
+        category: item.category,
+        colorTags: item.color_tags || [],
+        styleTags: item.style_tags || [],
+        wearCount: item.wear_count || 0,
+        lastWornAt: item.last_worn_at,
+        createdAt: item.created_at
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcessing(false);
+    }
   }
 
   function addColorTag() {
@@ -67,6 +135,7 @@ export default function UploadModal({ onClose, onAdded }) {
         imageUrl: item.image_url,
         category: item.category,
         colorTags: item.color_tags || [],
+        styleTags: item.style_tags || [],
         wearCount: item.wear_count || 0,
         lastWornAt: item.last_worn_at,
         createdAt: item.created_at
@@ -142,6 +211,38 @@ export default function UploadModal({ onClose, onAdded }) {
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
 
+        {processing && (
+          <div style={{ padding: "10px 12px", borderRadius: 12, background: "rgba(240,200,90,0.12)", color: "var(--gold)", fontSize: "0.9rem" }}>
+            ✨ Processing your photo…
+          </div>
+        )}
+
+        {analysisSummary && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(255,255,255,0.06)" }}>
+            {analysisSummary.note && (
+              <div style={{ fontSize: "0.8rem", color: "var(--blush)" }}>{analysisSummary.note}</div>
+            )}
+            <div style={{ fontSize: "0.85rem", color: "var(--cream)" }}>
+              Detected: <strong>{analysisSummary.category}</strong>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {(analysisSummary.colorTags || []).map((tag) => (
+                <span key={tag} className="chip">{tag}</span>
+              ))}
+              {(analysisSummary.styleTags || []).map((tag) => (
+                <span key={tag} className="chip" style={{ background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>#{tag}</span>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
+              {analysisSummary.attributes?.sleeveLength && analysisSummary.attributes.sleeveLength !== "unknown" && <span>• {analysisSummary.attributes.sleeveLength}</span>}
+              {analysisSummary.attributes?.fit && analysisSummary.attributes.fit !== "unknown" && <span>• {analysisSummary.attributes.fit}</span>}
+              {analysisSummary.attributes?.silhouette && analysisSummary.attributes.silhouette !== "unknown" && <span>• {analysisSummary.attributes.silhouette}</span>}
+              {analysisSummary.attributes?.occasion && analysisSummary.attributes.occasion !== "unknown" && <span>• {analysisSummary.attributes.occasion}</span>}
+              {analysisSummary.attributes?.material && analysisSummary.attributes.material !== "unknown" && <span>• {analysisSummary.attributes.material}</span>}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="field-label">Category</label>
           <select className="select-input" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -192,8 +293,8 @@ export default function UploadModal({ onClose, onAdded }) {
 
         {error && <p style={{ color: "var(--blush)", margin: 0, fontSize: "0.85rem" }}>{error}</p>}
 
-        <button type="submit" className="btn-gold" disabled={submitting}>
-          {submitting ? "Adding…" : "Add to Closet"}
+        <button type="submit" className="btn-gold" disabled={submitting || processing}>
+          {submitting ? "Adding…" : processing ? "Processing…" : "Add to Closet"}
         </button>
       </motion.form>
     </motion.div>

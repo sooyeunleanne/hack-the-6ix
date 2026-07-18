@@ -1,13 +1,15 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "../lib/mongodb";
 
-export async function createClosetItem(userId, { imageUrl, category, colorTags = [] }) {
+export async function createClosetItem(userId, { imageUrl, category, colorTags = [], styleTags = [], attributes = {} }) {
   const db = await getDb();
   const doc = {
     user_id: new ObjectId(userId),
     image_url: imageUrl,
     category,
     color_tags: colorTags,
+    style_tags: styleTags,
+    attributes,
     wear_count: 0,
     last_worn_at: null,
     created_at: new Date()

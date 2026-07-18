@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 
-export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
+export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete }) {
   const [wearing, setWearing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleWear() {
     setWearing(true);
@@ -12,6 +13,16 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
       await onWear(item.id);
     } finally {
       setWearing(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Remove this ${item.category} from your closet?`)) return;
+    setDeleting(true);
+    try {
+      await onDelete(item.id);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -50,6 +61,30 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
         </span>
       )}
 
+      <button
+        onClick={handleDelete}
+        disabled={deleting}
+        aria-label={`Remove ${item.category} from closet`}
+        className="btn-glass"
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          width: 26,
+          height: 26,
+          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          fontSize: "0.8rem",
+          lineHeight: 1,
+          zIndex: 1
+        }}
+      >
+        {deleting ? "…" : "✕"}
+      </button>
+
       <div
         style={{
           width: "100%",
@@ -72,9 +107,14 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
           {item.category}
         </strong>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {item.colorTags.slice(0, 3).map((tag) => (
+          {(item.colorTags || []).slice(0, 3).map((tag) => (
             <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem" }}>
               {tag}
+            </span>
+          ))}
+          {(item.styleTags || []).slice(0, 3).map((tag) => (
+            <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem", background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>
+              #{tag}
             </span>
           ))}
         </div>
