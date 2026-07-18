@@ -9,18 +9,11 @@ const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 // weather/weatherError/onCityLookup are lifted up to DashboardClient so the
 // header and this chat share one geolocation lookup (and one saved-location
 // persistence flow) instead of each prompting the browser separately.
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion, weather, weatherError, onCityLookup }) {
+// Photo capture and outfit rendering live in TryOnPanel (its own section) —
+// this component stays focused on the conversation, and hands suggested
+// item ids up via onSuggestItems for TryOnPanel to render.
+export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems, weather, weatherError, onCityLookup }) {
   const [cityInput, setCityInput] = useState("");
-
-  const [cameraOn, setCameraOn] = useState(false);
-  const [photo, setPhoto] = useState(fullBodyPhotoUrl);
-  const [countdown, setCountdown] = useState(null);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const countdownRef = useRef(null);
-
-  const CAPTURE_COUNTDOWN_SECONDS = 5;
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -51,21 +44,9 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (countdownRef.current) clearInterval(countdownRef.current);
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
-
-  // The <video> element only mounts once cameraOn is true, so the stream
-  // can't be attached inside startCamera (videoRef.current is still null
-  // at that point) — attach it here instead, once the element exists.
-  useEffect(() => {
-    if (cameraOn && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [cameraOn]);
 
   function handleCityLookup() {
     onCityLookup?.(cityInput);
@@ -142,100 +123,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
     }
   }
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-      streamRef.current = stream;
-      setCameraOn(true);
-    } catch {
-      alert("Couldn't access your camera — check browser permissions.");
-    }
-  }
-
-  function stopCamera() {
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-      setCountdown(null);
-    }
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setCameraOn(false);
-  }
-
-  // Gives the user time to step back and pose for a full-body shot instead
-  // of capturing the instant they click.
-  function startCaptureCountdown() {
-    if (countdownRef.current) return;
-    let secondsLeft = CAPTURE_COUNTDOWN_SECONDS;
-    setCountdown(secondsLeft);
-    countdownRef.current = setInterval(() => {
-      secondsLeft -= 1;
-      if (secondsLeft <= 0) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
-        setCountdown(null);
-        capturePhoto();
-      } else {
-        setCountdown(secondsLeft);
-      }
-    }, 1000);
-  }
-
-  async function capturePhoto() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-    setPhoto(dataUrl);
-    stopCamera();
-
-    fetch("/api/users/photo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photoUrl: dataUrl })
-    }).catch(() => {});
-
-    // If the godmother already suggested an outfit before the camera was
-    // on, put it on right away now that we have a photo.
-    setMessages((prev) => {
-      const last = [...prev].reverse().find((m) => m.role === "godmother" && m.itemIds && !m.tryOnImage);
-      if (last) runTryOn(last.id, last.itemIds, dataUrl);
-      return prev;
-    });
-  }
-
-  function retakePhoto() {
-    setPhoto(null);
-  }
-
-  async function runTryOn(messageId, itemIds, photoOverride) {
-    const activePhoto = photoOverride || photo;
-    if (!activePhoto || !itemIds || itemIds.length === 0) return;
-
-    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, tryOnLoading: true } : m)));
-    try {
-      const res = await fetch("/api/tryon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemIds })
-      });
-      const data = await res.json();
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? { ...m, tryOnLoading: false, tryOnImage: data.generatedImageUrl, tryOnMock: data.mock, tryOnNote: data.note }
-            : m
-        )
-      );
-    } catch {
-      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, tryOnLoading: false } : m)));
-    }
-  }
-
   async function handleSend(textOverride) {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
@@ -264,8 +151,8 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
       setMessages((prev) => [...prev, godmotherMsg]);
       if (voiceReplyEnabled) onSuggestion?.(data.reply);
 
-      if (photo && data.itemIds?.length) {
-        runTryOn(godmotherMsg.id, data.itemIds);
+      if (data.itemIds?.length) {
+        onSuggestItems?.(data.itemIds);
       }
     } catch (err) {
       setMessages((prev) => [...prev, { id: nextId(), role: "godmother", text: `Oh dear — ${err.message}` }]);
@@ -286,7 +173,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
             🧚 Ask Your Fairy Godmother
           </h3>
           <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
-            Chat for outfit picks — weather-aware, and shown on you live.
+            Chat for weather-aware outfit picks from your closet.
           </p>
         </div>
         <button
@@ -297,64 +184,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
         >
           {voiceReplyEnabled ? "🔊 Talk back: on" : "🔇 Talk back: off"}
         </button>
-      </div>
-
-      <div>
-        {!photo && !cameraOn && (
-          <button onClick={startCamera} className="btn-glass" style={{ width: "100%" }}>
-            📷 Turn on Camera
-          </button>
-        )}
-
-        {!photo && cameraOn && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ position: "relative" }}>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: "100%", borderRadius: 14, border: "1px solid var(--glass-border)", transform: "scaleX(-1)" }}
-              />
-              {countdown !== null && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 72,
-                    fontWeight: 700,
-                    color: "var(--gold)",
-                    textShadow: "0 0 24px rgba(0,0,0,0.7)"
-                  }}
-                >
-                  {countdown}
-                </div>
-              )}
-            </div>
-            <button onClick={startCaptureCountdown} className="btn-gold" style={{ width: "100%" }} disabled={countdown !== null}>
-              {countdown !== null ? `Get ready… ${countdown}` : `📸 Capture (${CAPTURE_COUNTDOWN_SECONDS}s timer)`}
-            </button>
-          </div>
-        )}
-
-        {photo && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo}
-              alt="you"
-              style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--gold)" }}
-            />
-            <span style={{ fontSize: "0.75rem", color: "var(--periwinkle-soft)" }}>Camera ready — outfits go straight on</span>
-            <button onClick={retakePhoto} className="btn-glass" style={{ marginLeft: "auto", padding: "6px 12px", fontSize: "0.7rem" }}>
-              Retake
-            </button>
-          </div>
-        )}
-        <canvas ref={canvasRef} hidden />
       </div>
 
       <div
@@ -390,45 +219,22 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--cream)" }}>{m.text}</p>
 
             {m.itemIds && itemsFor(m.itemIds).length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                {itemsFor(m.itemIds).map((item) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={item.id}
-                    src={item.imageUrl}
-                    alt={item.category}
-                    style={{ width: 46, height: 58, objectFit: "cover", borderRadius: 8, border: "1px solid var(--glass-border)" }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {m.tryOnLoading && (
-              <p style={{ margin: "8px 0 0", fontSize: "0.75rem", color: "var(--periwinkle-soft)" }}>
-                Weaving the magic…
-              </p>
-            )}
-
-            {m.tryOnImage && (
-              <div style={{ marginTop: 8 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={m.tryOnImage}
-                  alt="try-on"
-                  style={{ width: "100%", borderRadius: 12, border: "1px solid var(--glass-border)" }}
-                />
-                {m.tryOnMock && (
-                  <span className="chip" style={{ marginTop: 6, display: "inline-block", padding: "1px 8px", fontSize: "0.62rem" }}>
-                    demo mode
-                  </span>
-                )}
-              </div>
-            )}
-
-            {m.itemIds && !photo && !m.tryOnImage && (
-              <p style={{ margin: "8px 0 0", fontSize: "0.7rem", color: "var(--periwinkle-soft)", fontStyle: "italic" }}>
-                Turn on your camera above and I'll show you wearing it.
-              </p>
+              <>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {itemsFor(m.itemIds).map((item) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={item.id}
+                      src={item.imageUrl}
+                      alt={item.category}
+                      style={{ width: 46, height: 58, objectFit: "cover", borderRadius: 8, border: "1px solid var(--glass-border)" }}
+                    />
+                  ))}
+                </div>
+                <p style={{ margin: "8px 0 0", fontSize: "0.7rem", color: "var(--periwinkle-soft)", fontStyle: "italic" }}>
+                  See it on you in the Try It On panel ↑
+                </p>
+              </>
             )}
           </motion.div>
         ))}

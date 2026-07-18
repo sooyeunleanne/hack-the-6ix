@@ -46,25 +46,16 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         display: "flex",
         flexDirection: "column",
         gap: 8,
-        border: isFrontOfCloset
+        border: selected
+          ? "2px solid var(--gold)"
+          : isFrontOfCloset
           ? "1px solid var(--gold)"
-          : matchGood
-          ? "2px solid var(--periwinkle)"
-          : matchSoso
-          ? "1px dashed var(--periwinkle-soft)"
           : "1px solid var(--glass-border)",
-        background: matchGood
-          ? "linear-gradient(155deg, rgba(176,183,230,0.4), rgba(176,183,230,0.08))"
-          : matchSoso
-          ? "rgba(176,183,230,0.12)"
-          : undefined,
-        boxShadow: [
-          isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : null,
-          matchGood ? "0 0 26px rgba(176,183,230,0.6)" : null,
-          !isFrontOfCloset && !matchGood ? "var(--shadow-soft)" : null
-        ]
-          .filter(Boolean)
-          .join(", "),
+        boxShadow: selected
+          ? "0 0 26px rgba(240,200,90,0.55)"
+          : isFrontOfCloset
+          ? "0 0 22px rgba(240,200,90,0.45)"
+          : "var(--shadow-soft)",
         position: "relative"
       }}
     >
@@ -131,6 +122,12 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
       </button>
 
       <div
+        className="selectable-photo"
+        onClick={handleSelectToggle}
+        role="button"
+        aria-pressed={selected}
+        aria-label={selected ? "Remove from outfit" : "Add to outfit"}
+        title={selected ? "Remove from outfit" : "Tap to add to outfit"}
         style={{
           width: "100%",
           aspectRatio: "3 / 4",
@@ -145,6 +142,7 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
           alt={item.category}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
+        <span className={`select-badge${selected ? " selected" : ""}`}>{selected ? "✓" : "+"}</span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -191,20 +189,6 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         style={{ fontSize: "0.78rem", padding: "8px 12px" }}
       >
         {wearing ? "Marking…" : "I wore this today"}
-      </button>
-
-      <button
-        onClick={handleSelectToggle}
-        type="button"
-        className="btn-glass"
-        style={{
-          fontSize: "0.78rem",
-          padding: "8px 12px",
-          background: selected ? "rgba(240,200,90,0.18)" : undefined,
-          color: selected ? "var(--midnight-deep)" : undefined
-        }}
-      >
-        {selected ? "Remove from outfit" : "Add to outfit"}
       </button>
     </motion.div>
   );
