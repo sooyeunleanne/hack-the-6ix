@@ -10,6 +10,8 @@ import ShoppingListPanel from "../components/ShoppingListPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
+const DONATE_STALE_DAYS = 45;
+
 function sortByWear(items) {
   return [...items].sort((a, b) => a.wearCount - b.wearCount);
 }
@@ -146,7 +148,6 @@ export default function DashboardClient({ user, initialItems }) {
   function handleItemAdded(newItem) {
     setItems((prev) => sortByWear([...prev, newItem]));
     setShowUpload(false);
-    setGodmotherLine(`A new piece joins the closet! ${newItem.category}, ready when you are.`);
   }
 
   async function handleWear(itemId) {
@@ -165,7 +166,6 @@ export default function DashboardClient({ user, initialItems }) {
         )
       )
     );
-    setGodmotherLine("Marked as worn — the closet reorders itself, like magic.");
   }
 
   async function handleDelete(itemId) {
@@ -361,8 +361,6 @@ export default function DashboardClient({ user, initialItems }) {
       </motion.div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onAdded={handleItemAdded} />}
-
-      <FairyGodmother line={godmotherLine} onLineConsumed={() => setGodmotherLine(null)} userName={user.name.split(" ")[0]} />
     </main>
   );
 }
