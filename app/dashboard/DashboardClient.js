@@ -6,6 +6,7 @@ import SparkleField from "../components/SparkleField";
 import ClosetGrid, { CATEGORY_ORDER, LEAST_WORN_COUNT } from "../components/ClosetGrid";
 import UploadModal from "../components/UploadModal";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
+import DonationPanel from "../components/DonationPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import TryOnPanel from "../components/TryOnPanel";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
@@ -380,6 +381,7 @@ export default function DashboardClient({ user, initialItems }) {
               weatherError={weatherError}
               onCityLookup={handleCityLookup}
             />
+            <DonationPanel items={items} onDelete={handleDelete} />
           </div>
         </section>
       </motion.div>
