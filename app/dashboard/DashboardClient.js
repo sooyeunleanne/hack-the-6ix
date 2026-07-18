@@ -295,7 +295,7 @@ export default function DashboardClient({ user, initialItems }) {
                 style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(240,200,90,0.4)" }}
               />
               <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
-                bibbidi-bobbidi-boo
+                bibbidi-bobbidi-boo!
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
