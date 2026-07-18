@@ -56,7 +56,7 @@ export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = 
         style={{ padding: 32, textAlign: "center", color: "var(--periwinkle-soft)" }}
       >
         Your closet is empty for now. Add your first piece and watch the
-        magic begin. 🪄
+        magic begin.
       </div>
     );
   }

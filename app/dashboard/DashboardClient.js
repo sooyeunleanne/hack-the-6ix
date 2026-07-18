@@ -255,9 +255,16 @@ export default function DashboardClient({ user, initialItems }) {
               initial={{ scale: 0, rotate: -30, opacity: 0 }}
               animate={{ scale: [0, 1.4, 1], rotate: [0, 12, 0], opacity: 1 }}
               transition={{ duration: 1.1, ease: "easeOut" }}
-              style={{ fontSize: 96, filter: "drop-shadow(0 0 30px rgba(240,200,90,0.8))" }}
+              style={{ filter: "drop-shadow(0 0 40px rgba(240,200,90,0.8))" }}
             >
-              👠
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/bbblogo.jpg"
+                alt=""
+                width={260}
+                height={260}
+                style={{ borderRadius: 32, display: "block" }}
+              />
             </motion.div>
           </motion.div>
         )}

@@ -47,40 +47,29 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         borderRadius: 18,
         display: "flex",
         flexDirection: "column",
-        gap: 8,
-        border: isFrontOfCloset
-          ? "1px solid var(--gold)"
-          : matchGood
-          ? "2px solid var(--periwinkle)"
-          : matchSoso
-          ? "1px dashed var(--periwinkle-soft)"
+        gap: 10,
+        border: selected
+          ? "2px solid var(--gold)"
+          : isFrontOfCloset
+          ? "1px solid rgba(207,224,251,0.5)"
           : "1px solid var(--glass-border)",
-        background: matchGood
-          ? "linear-gradient(155deg, rgba(176,183,230,0.2), rgba(176,183,230,0.05))"
-          : matchSoso
-          ? "rgba(176,183,230,0.1)"
-          : undefined,
-        boxShadow: [
-          isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : null,
-          matchGood ? "0 0 18px rgba(176,183,230,0.4)" : null,
-          !isFrontOfCloset && !matchGood ? "var(--shadow-soft)" : null
-        ]
-          .filter(Boolean)
-          .join(", "),
+        boxShadow: selected
+          ? "0 0 26px rgba(240,200,90,0.55)"
+          : isFrontOfCloset
+          ? "0 0 18px rgba(207,224,251,0.28)"
+          : "var(--shadow-soft)",
         position: "relative"
       }}
     >
       {isFrontOfCloset && (
         <span
-          className="chip"
+          className="chip least-worn-badge"
           style={{
             position: "absolute",
-            top: 8,
-            left: 8,
-            background: "linear-gradient(135deg, var(--gold), var(--gold-deep))",
-            color: "var(--midnight-deep)",
-            border: "none",
-            fontWeight: 700,
+            top: 10,
+            left: 10,
+            fontSize: "0.72rem",
+            padding: "5px 12px",
             zIndex: 1
           }}
         >
@@ -159,22 +148,7 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         >
           {item.category}
         </strong>
-        {colorMatch && (
-          <span
-            className="chip"
-            style={{
-              alignSelf: "flex-start",
-              fontSize: "0.68rem",
-              padding: "2px 9px",
-              background: matchGood ? "rgba(176,183,230,0.22)" : "rgba(176,183,230,0.08)",
-              borderColor: matchGood ? "var(--periwinkle)" : "var(--glass-border)",
-              color: matchGood ? "var(--periwinkle)" : "var(--periwinkle-soft)"
-            }}
-          >
-            {matchGood ? "Pairs well with" : "Goes okay with"} {colorMatch.label}
-          </span>
-        )}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {(item.colorTags || []).slice(0, 3).map((tag) => (
             <span key={tag} className="chip" style={{ padding: "2px 9px 2px 5px", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 11, height: 11, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
