@@ -10,6 +10,7 @@ import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import ShoppingListPanel from "../components/ShoppingListPanel";
 import FairyGodmother from "../components/FairyGodmother";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
+import { suggestColorMatches } from "../../lib/colorMatching";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -43,6 +44,14 @@ export default function DashboardClient({ user, initialItems }) {
   const filteredItems = useMemo(
     () => (closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory)),
     [items, closetCategory]
+  );
+
+  // Recomputes live as the outfit selection changes: for every unselected
+  // item, the strongest color relation ("good"/"soso") to whatever's
+  // already picked, per lib/colorMatching.js.
+  const colorMatches = useMemo(
+    () => suggestColorMatches(selectedItems, items),
+    [selectedItems, items]
   );
 
   function handleSelectToggle(itemId) {
@@ -326,6 +335,7 @@ export default function DashboardClient({ user, initialItems }) {
               onDelete={handleDelete}
               selectedItemIds={selectedItemIds}
               onSelectToggle={handleSelectToggle}
+              colorMatches={colorMatches}
             />
           </div>
 

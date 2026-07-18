@@ -4,9 +4,12 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { nearestColorName } from "../../lib/colorNames";
 
-export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle }) {
+export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle, colorMatch }) {
   const [wearing, setWearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const matchGood = colorMatch?.tier === "good";
+  const matchSoso = colorMatch?.tier === "soso";
 
   async function handleWear() {
     setWearing(true);
@@ -43,11 +46,48 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         display: "flex",
         flexDirection: "column",
         gap: 8,
-        border: isFrontOfCloset ? "1px solid var(--gold)" : "1px solid var(--glass-border)",
-        boxShadow: isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : "var(--shadow-soft)",
+        border: isFrontOfCloset
+          ? "1px solid var(--gold)"
+          : matchGood
+          ? "2px solid var(--periwinkle)"
+          : matchSoso
+          ? "1px dashed var(--periwinkle-soft)"
+          : "1px solid var(--glass-border)",
+        background: matchGood
+          ? "linear-gradient(155deg, rgba(176,183,230,0.4), rgba(176,183,230,0.08))"
+          : matchSoso
+          ? "rgba(176,183,230,0.12)"
+          : undefined,
+        boxShadow: [
+          isFrontOfCloset ? "0 0 22px rgba(240,200,90,0.45)" : null,
+          matchGood ? "0 0 26px rgba(176,183,230,0.6)" : null,
+          !isFrontOfCloset && !matchGood ? "var(--shadow-soft)" : null
+        ]
+          .filter(Boolean)
+          .join(", "),
         position: "relative"
       }}
     >
+      {matchGood && (
+        <span
+          className="chip"
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 40,
+            background: "linear-gradient(135deg, var(--periwinkle), #6b74c9)",
+            color: "#fff",
+            border: "none",
+            fontWeight: 700,
+            fontSize: "0.68rem",
+            zIndex: 1,
+            boxShadow: "0 0 10px rgba(176,183,230,0.7)"
+          }}
+        >
+          ✨ great pair
+        </span>
+      )}
+
       {isFrontOfCloset && (
         <span
           className="chip"
@@ -111,6 +151,21 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         <strong style={{ color: "var(--cream)", fontSize: "0.92rem", textTransform: "capitalize" }}>
           {item.category}
         </strong>
+        {colorMatch && (
+          <span
+            className="chip"
+            style={{
+              alignSelf: "flex-start",
+              fontSize: "0.68rem",
+              padding: "2px 9px",
+              background: matchGood ? "rgba(176,183,230,0.22)" : "rgba(176,183,230,0.08)",
+              borderColor: matchGood ? "var(--periwinkle)" : "var(--glass-border)",
+              color: matchGood ? "var(--periwinkle)" : "var(--periwinkle-soft)"
+            }}
+          >
+            {matchGood ? "✨ pairs with" : "goes okay with"} {colorMatch.label}
+          </span>
+        )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {(item.colorTags || []).slice(0, 3).map((tag) => (
             <span key={tag} className="chip" style={{ padding: "2px 9px 2px 5px", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 5 }}>

@@ -5,7 +5,7 @@ import ClosetItemCard from "./ClosetItemCard";
 
 const CATEGORY_ORDER = ["Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"];
 
-export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle }) {
+export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = [], onSelectToggle, colorMatches }) {
   if (items.length === 0) {
     return (
       <div
@@ -59,6 +59,7 @@ export default function ClosetGrid({ items, onWear, onDelete, selectedItemIds = 
                     onDelete={onDelete}
                     selected={selectedItemIds.includes(item.id)}
                     onSelectToggle={onSelectToggle}
+                    colorMatch={colorMatches?.get(item.id)}
                   />
                 ))}
               </AnimatePresence>
