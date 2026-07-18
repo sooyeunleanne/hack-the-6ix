@@ -153,9 +153,10 @@ export default function DashboardClient({ user, initialItems }) {
     }
   }
 
+  // Closing the modal is UploadModal's own job now (it may be adding a
+  // batch of items and needs to stay open until the whole batch finishes).
   function handleItemAdded(newItem) {
     setItems((prev) => sortByWear([...prev, newItem]));
-    setShowUpload(false);
   }
 
   async function handleWear(itemId) {
