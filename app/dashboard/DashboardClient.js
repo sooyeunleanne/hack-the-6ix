@@ -168,7 +168,7 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <FairyGodmotherChat items={items} fullBodyPhotoUrl={user.fullBodyPhotoUrl} onSuggestion={setGodmotherLine} />
+            <FairyGodmotherChat items={items} fullBodyPhotoUrl={user.fullBodyPhotoUrl} savedLocation={user.location} onSuggestion={setGodmotherLine} />
             <ShoppingListPanel items={items} onSuggestion={setGodmotherLine} />
           </div>
         </section>

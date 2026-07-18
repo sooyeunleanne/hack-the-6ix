@@ -3,6 +3,7 @@ import { auth0 } from "../../../lib/auth0";
 import { getUserByAuth0Id } from "../../../models/users";
 import { getClosetItemsByUser } from "../../../models/closetItems";
 import { hasGeminiKey, generateJson } from "../../../lib/gemini";
+import { nearestColorName } from "../../../lib/colorNames";
 
 function mockReply(items, message, weather) {
   const sorted = [...items].sort((a, b) => a.wear_count - b.wear_count);
@@ -40,7 +41,7 @@ export async function POST(request) {
   const catalog = items.map((i) => ({
     id: i._id.toString(),
     category: i.category,
-    colorTags: i.color_tags || []
+    colorTags: (i.color_tags || []).map((hex) => `${hex} (${nearestColorName(hex)})`)
   }));
 
   const historyText = (history || [])

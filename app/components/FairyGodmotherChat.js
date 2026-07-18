@@ -7,7 +7,15 @@ import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion }) {
+function persistLocation(location) {
+  fetch("/api/users/location", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ location })
+  }).catch(() => {});
+}
+
+export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocation, onSuggestion }) {
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(null);
   const [cityInput, setCityInput] = useState("");
@@ -23,8 +31,21 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   const [sending, setSending] = useState(false);
   const logRef = useRef(null);
 
-  // Weather lookup — geolocation first, city fallback if denied/unsupported.
+  // Weather lookup — saved location first, then geolocation, then city fallback.
   useEffect(() => {
+    if (savedLocation) {
+      (async () => {
+        try {
+          const w = savedLocation.city
+            ? await getWeatherByCity(savedLocation.city)
+            : await getWeatherByCoords(savedLocation.lat, savedLocation.lon);
+          setWeather(w);
+        } catch {
+          setWeatherError("lookup-failed");
+        }
+      })();
+      return;
+    }
     if (!navigator.geolocation) {
       setWeatherError("no-geo");
       return;
@@ -34,6 +55,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
         try {
           const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
           setWeather(w);
+          persistLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         } catch {
           setWeatherError("lookup-failed");
         }
@@ -41,6 +63,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
       () => setWeatherError("denied"),
       { timeout: 8000 }
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -67,6 +90,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
       const w = await getWeatherByCity(cityInput.trim());
       setWeather(w);
       setWeatherError(null);
+      persistLocation({ city: cityInput.trim() });
     } catch (err) {
       setWeatherError(err.message);
     }

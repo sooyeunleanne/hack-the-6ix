@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { nearestColorName } from "../../lib/colorNames";
 
 export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete }) {
   const [wearing, setWearing] = useState(false);
@@ -108,8 +109,9 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete
         </strong>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {(item.colorTags || []).slice(0, 3).map((tag) => (
-            <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem" }}>
-              {tag}
+            <span key={tag} className="chip" style={{ padding: "2px 9px 2px 5px", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 11, height: 11, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+              {nearestColorName(tag)}
             </span>
           ))}
           {(item.styleTags || []).slice(0, 3).map((tag) => (
