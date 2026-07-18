@@ -6,9 +6,10 @@ import { motion } from "framer-motion";
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
+// weather/weatherError/onCityLookup are lifted up to DashboardClient so the
+// header and this chat share one geolocation lookup (and one saved-location
+// persistence flow) instead of each prompting the browser separately.
 export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion, weather, weatherError, onCityLookup }) {
-  const [weather, setWeather] = useState(null);
-  const [weatherError, setWeatherError] = useState(null);
   const [cityInput, setCityInput] = useState("");
 
   const [cameraOn, setCameraOn] = useState(false);
@@ -36,38 +37,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   const micChunksRef = useRef([]);
   const micStreamRef = useRef(null);
 
-  // Fallback / local voice support states from your feature branch
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef(null);
-  const transcriptRef = useRef("");
-  const audioRef = useRef(null);
-
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setVoiceSupported(Boolean(SR));
-  }, []);
-
-  // Weather lookup — geolocation first, city fallback if denied/unsupported.
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setWeatherError("no-geo");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
-          setWeather(w);
-        } catch {
-          setWeatherError("lookup-failed");
-        }
-      },
-      () => setWeatherError("denied"),
-      { timeout: 8000 }
-    );
-  }, []);
-
   useEffect(() => {
     const greeting = weather
       ? `It's ${weather.temp}°${weather.unit} and ${weather.condition} out there. Tell me what you're in the mood for, and I'll find something in your closet.`
@@ -83,7 +52,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      recognitionRef.current?.stop();
       if (countdownRef.current) clearInterval(countdownRef.current);
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
@@ -268,47 +236,58 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
     }
   }
 
-// Voice in (ElevenLabs speech-to-text, falling back to the browser's own
-  // SpeechRecognition if no key is configured) and voice out (whether chat
-  // replies get spoken via the FairyGodmother widget, toggleable per user).
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const [voiceReplyEnabled, setVoiceReplyEnabled] = useState(true);
-  const micRecorderRef = useRef(null);
-  const micChunksRef = useRef([]);
-  const micStreamRef = useRef(null);
+  async function handleSend(textOverride) {
+    const text = (textOverride ?? input).trim();
+    if (!text || sending) return;
+    setInput("");
+    const userMsg = { id: nextId(), role: "user", text };
+    const history = messages.map((m) => ({ role: m.role, text: m.text }));
+    setMessages((prev) => [...prev, userMsg]);
+    setSending(true);
 
-  // Fallback / local voice support states from your feature branch
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef(null);
-  const transcriptRef = useRef("");
-  const audioRef = useRef(null);
+    try {
+      const res = await fetch("/api/outfit-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, weather, history })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't summon a suggestion");
 
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setVoiceSupported(Boolean(SR));
-  }, []);
+      const godmotherMsg = {
+        id: nextId(),
+        role: "godmother",
+        text: data.reply,
+        itemIds: data.itemIds,
+        mock: data.mock
+      };
+      setMessages((prev) => [...prev, godmotherMsg]);
+      if (voiceReplyEnabled) onSuggestion?.(data.reply);
 
-  // Weather lookup — geolocation first, city fallback if denied/unsupported.
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setWeatherError("no-geo");
-      return;
+      if (photo && data.itemIds?.length) {
+        runTryOn(godmotherMsg.id, data.itemIds);
+      }
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: nextId(), role: "godmother", text: `Oh dear — ${err.message}` }]);
+    } finally {
+      setSending(false);
     }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
-          setWeather(w);
-        } catch {
-          setWeatherError("lookup-failed");
-        }
-      },
-      () => setWeatherError("denied"),
-      { timeout: 8000 }
-    );
-  }, []);
+  }
+
+  function itemsFor(ids) {
+    return items.filter((i) => ids?.includes(i.id));
+  }
+
+  return (
+    <section className="glass-panel" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
+            🧚 Ask Your Fairy Godmother
+          </h3>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
+            Chat for outfit picks — weather-aware, and shown on you live.
+          </p>
         </div>
         <button
           onClick={() => setVoiceReplyEnabled((v) => !v)}
@@ -471,30 +450,12 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
         </button>
         <input
           className="text-input"
-          placeholder={listening ? "Listening…" : "Something cozy for tonight…"}
           placeholder={recording ? "Listening…" : "Something cozy for tonight…"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           disabled={sending}
         />
-        {voiceSupported && (
-          <button
-            onClick={toggleListening}
-            className="btn-glass"
-            style={{
-              padding: "8px 12px",
-              fontSize: "0.95rem",
-              whiteSpace: "nowrap",
-              background: listening ? "rgba(240,200,90,0.3)" : undefined,
-              borderColor: listening ? "var(--gold)" : undefined
-            }}
-            aria-label={listening ? "Stop voice input" : "Speak your request"}
-            title={listening ? "Stop voice input" : "Speak your request"}
-          >
-            {listening ? "⏹" : "🎤"}
-          </button>
-        )}
         <button onClick={() => handleSend()} className="btn-gold" disabled={sending || !input.trim()} style={{ whiteSpace: "nowrap" }}>
           {sending ? "…" : "Send"}
         </button>
