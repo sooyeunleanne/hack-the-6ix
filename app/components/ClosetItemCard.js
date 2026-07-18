@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { nearestColorName } from "../../lib/colorNames";
 
-export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
+export default function ClosetItemCard({ item, isFrontOfCloset, onWear, onDelete, selected, onSelectToggle }) {
   const [wearing, setWearing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleWear() {
     setWearing(true);
@@ -13,6 +15,20 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
     } finally {
       setWearing(false);
     }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Remove this ${item.category} from your closet?`)) return;
+    setDeleting(true);
+    try {
+      await onDelete(item.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function handleSelectToggle() {
+    onSelectToggle?.(item.id);
   }
 
   return (
@@ -50,6 +66,30 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
         </span>
       )}
 
+      <button
+        onClick={handleDelete}
+        disabled={deleting}
+        aria-label={`Remove ${item.category} from closet`}
+        className="btn-glass"
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          width: 26,
+          height: 26,
+          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          fontSize: "0.8rem",
+          lineHeight: 1,
+          zIndex: 1
+        }}
+      >
+        {deleting ? "…" : "✕"}
+      </button>
+
       <div
         style={{
           width: "100%",
@@ -72,9 +112,15 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
           {item.category}
         </strong>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {item.colorTags.slice(0, 3).map((tag) => (
-            <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem" }}>
-              {tag}
+          {(item.colorTags || []).slice(0, 3).map((tag) => (
+            <span key={tag} className="chip" style={{ padding: "2px 9px 2px 5px", fontSize: "0.68rem", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 11, height: 11, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+              {nearestColorName(tag)}
+            </span>
+          ))}
+          {(item.styleTags || []).slice(0, 3).map((tag) => (
+            <span key={tag} className="chip" style={{ padding: "2px 9px", fontSize: "0.68rem", background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>
+              #{tag}
             </span>
           ))}
         </div>
@@ -90,6 +136,20 @@ export default function ClosetItemCard({ item, isFrontOfCloset, onWear }) {
         style={{ fontSize: "0.78rem", padding: "8px 12px" }}
       >
         {wearing ? "Marking…" : "I wore this today"}
+      </button>
+
+      <button
+        onClick={handleSelectToggle}
+        type="button"
+        className="btn-glass"
+        style={{
+          fontSize: "0.78rem",
+          padding: "8px 12px",
+          background: selected ? "rgba(240,200,90,0.18)" : undefined,
+          color: selected ? "var(--midnight-deep)" : undefined
+        }}
+      >
+        {selected ? "Remove from outfit" : "Add to outfit"}
       </button>
     </motion.div>
   );

@@ -4,6 +4,7 @@ import { getUserByAuth0Id } from "../../../../models/users";
 import { getClosetItemsByUser } from "../../../../models/closetItems";
 import { saveSuggestion } from "../../../../models/shoppingSuggestions";
 import { hasGeminiKey, generateJson } from "../../../../lib/gemini";
+import { nearestColorName } from "../../../../lib/colorNames";
 
 const STARTER_SUGGESTIONS = [
   { name: "White sneakers", category: "Shoes", colorTags: ["white"], reason: "A neutral shoe that pairs with almost everything you own." },
@@ -37,7 +38,10 @@ export async function POST(request) {
   if (!hasGeminiKey()) {
     result = mockSuggestions(items);
   } else {
-    const catalog = items.map((i) => ({ category: i.category, colorTags: i.color_tags || [] }));
+    const catalog = items.map((i) => ({
+      category: i.category,
+      colorTags: (i.color_tags || []).map((hex) => `${hex} (${nearestColorName(hex)})`)
+    }));
     const prompt = `You are a fairy-godmother personal shopper. Here is the shopper's current closet catalog (JSON, category + colors only): ${JSON.stringify(
       catalog
     )}\nStyle preference / vibe: "${vibe || "versatile everyday"}".\nSpot 3 to 5 gaps — categories or colors that are missing or underrepresented — and suggest specific items to buy that would complete more outfits. Respond with ONLY JSON: {"suggestedItems": [{"name": "...", "category": "...", "colorTags": ["..."], "reason": "one short sentence"}]}.`;

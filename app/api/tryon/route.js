@@ -3,7 +3,9 @@ import { auth0 } from "../../../lib/auth0";
 import { getUserByAuth0Id } from "../../../models/users";
 import { getClosetItemById } from "../../../models/closetItems";
 import { getCachedTryon, saveTryonResult } from "../../../models/tryonCache";
-import { hasGeminiKey, generateImage, dataUrlToInlineImage } from "../../../lib/gemini";
+import { hasGeminiKey } from "../../../lib/gemini";
+import { generateImage } from "../../../lib/nanoBanana";
+import { dataUrlToInlineImage } from "../../../lib/imageUtils";
 
 const PLACEHOLDER_SVG =
   "data:image/svg+xml;base64," +

@@ -11,6 +11,7 @@ export async function upsertUserByAuth0Id(auth0Id, { email } = {}) {
         auth0_id: auth0Id,
         email: email || null,
         full_body_photo_url: null,
+        location: null,
         style_prefs: { vibes: [], favorite_colors: [] },
         created_at: new Date()
       }
@@ -39,5 +40,13 @@ export async function updateStylePrefs(auth0Id, stylePrefs) {
   await db.collection("users").updateOne(
     { auth0_id: auth0Id },
     { $set: { style_prefs: stylePrefs } }
+  );
+}
+
+export async function updateLocation(auth0Id, location) {
+  const db = await getDb();
+  await db.collection("users").updateOne(
+    { auth0_id: auth0Id },
+    { $set: { location } }
   );
 }

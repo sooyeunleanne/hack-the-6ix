@@ -1,13 +1,18 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "../lib/mongodb";
 
-export async function createClosetItem(userId, { imageUrl, category, colorTags = [] }) {
+const ACCESSORY_CATEGORIES = new Set(["Accessory", "Bag", "Shoes"]);
+
+export async function createClosetItem(userId, { imageUrl, category, colorTags = [], styleTags = [], attributes = {} }) {
   const db = await getDb();
   const doc = {
     user_id: new ObjectId(userId),
     image_url: imageUrl,
     category,
     color_tags: colorTags,
+    style_tags: styleTags,
+    attributes,
+    is_accessory: ACCESSORY_CATEGORIES.has(category),
     wear_count: 0,
     last_worn_at: null,
     created_at: new Date()
@@ -34,7 +39,10 @@ export async function getClosetItemById(itemId, userId) {
 export async function updateClosetItemTags(itemId, userId, { category, colorTags } = {}) {
   const db = await getDb();
   const update = {};
-  if (category !== undefined) update.category = category;
+  if (category !== undefined) {
+    update.category = category;
+    update.is_accessory = ACCESSORY_CATEGORIES.has(category);
+  }
   if (colorTags !== undefined) update.color_tags = colorTags;
   if (Object.keys(update).length === 0) return;
   const result = await db.collection("closet_items").updateOne(

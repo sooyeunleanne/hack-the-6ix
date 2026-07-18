@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { extractColorTagsFromPixelData } from "../../lib/colorTags";
+import { nearestColorName } from "../../lib/colorNames";
 
 const CATEGORIES = ["Top", "Bottom", "Dress", "Outerwear", "Shoes", "Accessory", "Bag", "Other"];
 
@@ -14,29 +16,85 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function readImageBitmap(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function UploadModal({ onClose, onAdded }) {
   const [preview, setPreview] = useState(null);
   const [dataUrl, setDataUrl] = useState(null);
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState("Other");
   const [colorInput, setColorInput] = useState("");
   const [colorTags, setColorTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [analysisSummary, setAnalysisSummary] = useState(null);
   const fileRef = useRef(null);
 
   async function handleFile(file) {
     if (!file) return;
+    setError(null);
+    setAnalysisSummary(null);
     const url = await readFileAsDataUrl(file);
     setDataUrl(url);
     setPreview(url);
+
+    let fallbackColorTags = [];
+    try {
+      const img = await readImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const width = Math.min(img.naturalWidth, 120);
+      const height = Math.min(img.naturalHeight, 120);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      const pixelData = ctx.getImageData(0, 0, width, height).data;
+      fallbackColorTags = extractColorTagsFromPixelData(pixelData, width, height);
+      setColorTags(fallbackColorTags);
+    } catch (err) {
+      fallbackColorTags = [];
+    }
+
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/closet-items?preview=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url, category: "Other", colorTags: fallbackColorTags })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Image analysis failed");
+      }
+      const { item, analysisNote } = await res.json();
+      setCategory(item.category || "Other");
+      setColorTags(item.color_tags?.length ? item.color_tags : fallbackColorTags);
+      setAnalysisSummary({
+        category: item.category,
+        colorTags: item.color_tags || [],
+        styleTags: item.style_tags || [],
+        attributes: item.attributes || {},
+        note: analysisNote || null
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcessing(false);
+    }
   }
 
   function addColorTag() {
-    const tag = colorInput.trim().toLowerCase();
-    if (tag && !colorTags.includes(tag)) {
+    const tag = colorInput.trim().toUpperCase();
+    if (/^#[0-9A-F]{6}$/.test(tag) && !colorTags.includes(tag)) {
       setColorTags([...colorTags, tag]);
     }
-    setColorInput("");
   }
 
   function removeColorTag(tag) {
@@ -55,7 +113,7 @@ export default function UploadModal({ onClose, onAdded }) {
       const res = await fetch("/api/closet-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: dataUrl, category, colorTags })
+        body: JSON.stringify({ imageUrl: dataUrl, category: category || "Other", colorTags })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -67,10 +125,12 @@ export default function UploadModal({ onClose, onAdded }) {
         imageUrl: item.image_url,
         category: item.category,
         colorTags: item.color_tags || [],
+        styleTags: item.style_tags || [],
         wearCount: item.wear_count || 0,
         lastWornAt: item.last_worn_at,
         createdAt: item.created_at
       });
+      onClose();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -142,6 +202,41 @@ export default function UploadModal({ onClose, onAdded }) {
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
 
+        {processing && (
+          <div style={{ padding: "10px 12px", borderRadius: 12, background: "rgba(240,200,90,0.12)", color: "var(--gold)", fontSize: "0.9rem" }}>
+            ✨ Processing your photo…
+          </div>
+        )}
+
+        {analysisSummary && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(255,255,255,0.06)" }}>
+            {analysisSummary.note && (
+              <div style={{ fontSize: "0.8rem", color: "var(--blush)" }}>{analysisSummary.note}</div>
+            )}
+            <div style={{ fontSize: "0.85rem", color: "var(--cream)" }}>
+              Detected: <strong>{analysisSummary.category}</strong>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {(analysisSummary.colorTags || []).map((tag) => (
+                <span key={tag} className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                  {nearestColorName(tag)}
+                </span>
+              ))}
+              {(analysisSummary.styleTags || []).map((tag) => (
+                <span key={tag} className="chip" style={{ background: "rgba(240,200,90,0.16)", color: "var(--gold)" }}>#{tag}</span>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
+              {analysisSummary.attributes?.sleeveLength && analysisSummary.attributes.sleeveLength !== "unknown" && <span>• {analysisSummary.attributes.sleeveLength}</span>}
+              {analysisSummary.attributes?.fit && analysisSummary.attributes.fit !== "unknown" && <span>• {analysisSummary.attributes.fit}</span>}
+              {analysisSummary.attributes?.silhouette && analysisSummary.attributes.silhouette !== "unknown" && <span>• {analysisSummary.attributes.silhouette}</span>}
+              {analysisSummary.attributes?.occasion && analysisSummary.attributes.occasion !== "unknown" && <span>• {analysisSummary.attributes.occasion}</span>}
+              {analysisSummary.attributes?.material && analysisSummary.attributes.material !== "unknown" && <span>• {analysisSummary.attributes.material}</span>}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="field-label">Category</label>
           <select className="select-input" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -155,28 +250,23 @@ export default function UploadModal({ onClose, onAdded }) {
 
         <div>
           <label className="field-label">Color tags</label>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
-              className="text-input"
-              placeholder="e.g. periwinkle"
-              value={colorInput}
+              type="color"
+              value={/^#[0-9A-Fa-f]{6}$/.test(colorInput) ? colorInput : "#B0B7E6"}
               onChange={(e) => setColorInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addColorTag();
-                }
-              }}
+              style={{ width: 44, height: 40, padding: 0, border: "none", borderRadius: 10, background: "none", cursor: "pointer" }}
             />
             <button type="button" onClick={addColorTag} className="btn-glass" style={{ padding: "8px 16px" }}>
-              Add
+              Add color
             </button>
           </div>
           {colorTags.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
               {colorTags.map((tag) => (
-                <span key={tag} className="chip">
-                  {tag}
+                <span key={tag} className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: tag, border: "1px solid rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                  {nearestColorName(tag)}
                   <button
                     type="button"
                     onClick={() => removeColorTag(tag)}
@@ -192,8 +282,8 @@ export default function UploadModal({ onClose, onAdded }) {
 
         {error && <p style={{ color: "var(--blush)", margin: 0, fontSize: "0.85rem" }}>{error}</p>}
 
-        <button type="submit" className="btn-gold" disabled={submitting}>
-          {submitting ? "Adding…" : "Add to Closet"}
+        <button type="submit" className="btn-gold" disabled={submitting || processing}>
+          {submitting ? "Adding…" : processing ? "Processing…" : "Add to Closet"}
         </button>
       </motion.form>
     </motion.div>

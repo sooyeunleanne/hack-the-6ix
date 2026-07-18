@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Library/LaunchDaemons/**)",
+      "Read(//Library/PrivilegedHelperTools/**)",
+      "Bash(node -e ' *)",
+      "Bash(launchctl list *)",
+      "Bash(sudo -n profiles list -type configuration)",
+      "Bash(sudo -n lsof)",
+      "Bash(profiles status *)",
+      "Bash(traceroute -m 4 -w 2 ac-y699uab-shard-00-00.bbiag0f.mongodb.net)",
+      "Read(//opt/cisco/**)",
+      "Read(//Library/**)",
+      "Read(//Library/Application Support/**)",
+      "Bash(find / -maxdepth 4 -iname \"*forticlient*uninstall*\")",
+      "Read(//opt/cisco/secureclient/**)",
+      "Read(//Library/Application Support/Fortinet/**)",
+      "Bash(sw_vers)",
+      "Bash(lsof -i:3000)",
+      "Bash(git commit *)",
+      "WebFetch(domain:ai.google.dev)"
+    ]
+  }
+}
