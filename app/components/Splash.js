@@ -126,7 +126,7 @@ export default function Splash({ onEnter } = {}) {
               </motion.button>
             ) : (
               <motion.a
-                href="/auth/login"
+                href="/login"
                 className="btn-gold"
                 style={{
                   display: "inline-block",

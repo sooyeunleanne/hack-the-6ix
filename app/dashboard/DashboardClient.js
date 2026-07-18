@@ -8,7 +8,6 @@ import UploadModal from "../components/UploadModal";
 import DonateNudges from "../components/DonateNudges";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import ShoppingListPanel from "../components/ShoppingListPanel";
-import FairyGodmother from "../components/FairyGodmother";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -20,7 +19,6 @@ export default function DashboardClient({ user, initialItems }) {
   const [showIntro, setShowIntro] = useState(true);
   const [items, setItems] = useState(sortByWear(initialItems));
   const [showUpload, setShowUpload] = useState(false);
-  const [godmotherLine, setGodmotherLine] = useState(null);
 
   useEffect(() => {
     const t = setTimeout(() => setShowIntro(false), 1500);
@@ -37,7 +35,6 @@ export default function DashboardClient({ user, initialItems }) {
   function handleItemAdded(newItem) {
     setItems((prev) => sortByWear([...prev, newItem]));
     setShowUpload(false);
-    setGodmotherLine(`A new piece joins the closet! ${newItem.category}, ready when you are.`);
   }
 
   async function handleWear(itemId) {
@@ -56,7 +53,6 @@ export default function DashboardClient({ user, initialItems }) {
         )
       )
     );
-    setGodmotherLine("Marked as worn — the closet reorders itself, like magic.");
   }
 
   return (
@@ -161,15 +157,13 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <FairyGodmotherChat items={items} fullBodyPhotoUrl={user.fullBodyPhotoUrl} onSuggestion={setGodmotherLine} />
-            <ShoppingListPanel items={items} onSuggestion={setGodmotherLine} />
+            <FairyGodmotherChat items={items} fullBodyPhotoUrl={user.fullBodyPhotoUrl} />
+            <ShoppingListPanel items={items} />
           </div>
         </section>
       </motion.div>
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onAdded={handleItemAdded} />}
-
-      <FairyGodmother line={godmotherLine} onLineConsumed={() => setGodmotherLine(null)} userName={user.name.split(" ")[0]} />
     </main>
   );
 }

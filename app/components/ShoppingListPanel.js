@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 
-export default function ShoppingListPanel({ onSuggestion }) {
+export default function ShoppingListPanel() {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState(null);
   const [error, setError] = useState(null);
@@ -20,9 +20,6 @@ export default function ShoppingListPanel({ onSuggestion }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't put together a list");
       setSuggestions(data);
-      if (data.suggestedItems?.[0]) {
-        onSuggestion?.(`A little shopping magic: consider a ${data.suggestedItems[0].name.toLowerCase()} — ${data.suggestedItems[0].reason}`);
-      }
     } catch (err) {
       setError(err.message);
     } finally {

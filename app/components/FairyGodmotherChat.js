@@ -7,7 +7,7 @@ import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion }) {
+export default function FairyGodmotherChat({ items, fullBodyPhotoUrl }) {
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(null);
   const [cityInput, setCityInput] = useState("");
@@ -22,6 +22,18 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const logRef = useRef(null);
+
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const recognitionRef = useRef(null);
+  const transcriptRef = useRef("");
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(Boolean(SR));
+  }, []);
 
   // Weather lookup — geolocation first, city fallback if denied/unsupported.
   useEffect(() => {
@@ -58,6 +70,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      recognitionRef.current?.stop();
     };
   }, []);
 
@@ -147,8 +160,75 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
     }
   }
 
-  async function handleSend() {
-    const text = input.trim();
+  async function speak(text) {
+    if (!voiceEnabled) return;
+    try {
+      const res = await fetch("/api/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        if (audioRef.current) {
+          audioRef.current.src = url;
+          audioRef.current.play().catch(() => {});
+        }
+        return;
+      }
+    } catch {
+      /* fall through to browser speech */
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.pitch = 1.2;
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  function toggleListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      transcriptRef.current = transcript;
+      setInput(transcript);
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      if (transcriptRef.current.trim()) {
+        handleSend(transcriptRef.current);
+        transcriptRef.current = "";
+      }
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    transcriptRef.current = "";
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
+  }
+
+  async function handleSend(overrideText) {
+    const text = (overrideText ?? input).trim();
     if (!text || sending) return;
     setInput("");
     const userMsg = { id: nextId(), role: "user", text };
@@ -173,7 +253,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
         mock: data.mock
       };
       setMessages((prev) => [...prev, godmotherMsg]);
-      onSuggestion?.(data.reply);
+      speak(data.reply);
 
       if (photo && data.itemIds?.length) {
         runTryOn(godmotherMsg.id, data.itemIds);
@@ -191,13 +271,25 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
 
   return (
     <section className="glass-panel" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>
-        <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
-          🧚 Ask Your Fairy Godmother
-        </h3>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
-          Chat for outfit picks — weather-aware, and shown on you live.
-        </p>
+      <audio ref={audioRef} hidden />
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", color: "var(--cream)" }}>
+            🧚 Ask Your Fairy Godmother
+          </h3>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
+            Chat for outfit picks — weather-aware, and shown on you live.
+          </p>
+        </div>
+        <button
+          onClick={() => setVoiceEnabled((v) => !v)}
+          className="btn-glass"
+          style={{ padding: "6px 10px", fontSize: "0.85rem", flexShrink: 0 }}
+          aria-label={voiceEnabled ? "Mute her voice" : "Unmute her voice"}
+          title={voiceEnabled ? "Mute her voice" : "Unmute her voice"}
+        >
+          {voiceEnabled ? "🔊" : "🔇"}
+        </button>
       </div>
 
       {weatherError && !weather && (
@@ -335,13 +427,30 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
       <div style={{ display: "flex", gap: 8 }}>
         <input
           className="text-input"
-          placeholder="Something cozy for tonight…"
+          placeholder={listening ? "Listening…" : "Something cozy for tonight…"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           disabled={sending}
         />
-        <button onClick={handleSend} className="btn-gold" disabled={sending || !input.trim()} style={{ whiteSpace: "nowrap" }}>
+        {voiceSupported && (
+          <button
+            onClick={toggleListening}
+            className="btn-glass"
+            style={{
+              padding: "8px 12px",
+              fontSize: "0.95rem",
+              whiteSpace: "nowrap",
+              background: listening ? "rgba(240,200,90,0.3)" : undefined,
+              borderColor: listening ? "var(--gold)" : undefined
+            }}
+            aria-label={listening ? "Stop voice input" : "Speak your request"}
+            title={listening ? "Stop voice input" : "Speak your request"}
+          >
+            {listening ? "⏹" : "🎤"}
+          </button>
+        )}
+        <button onClick={() => handleSend()} className="btn-gold" disabled={sending || !input.trim()} style={{ whiteSpace: "nowrap" }}>
           {sending ? "…" : "Send"}
         </button>
       </div>
