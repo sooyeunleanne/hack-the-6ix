@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
@@ -68,7 +67,7 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
 
   useEffect(() => {
     const greeting = weather
-      ? `It's ${weather.tempF}°F and ${weather.condition} out there. Tell me what you're in the mood for, and I'll find something in your closet.`
+      ? `It's ${weather.temp}°${weather.unit} and ${weather.condition} out there. Tell me what you're in the mood for, and I'll find something in your closet.`
       : "Tell me what you're in the mood for, and I'll find something in your closet. (Share your city below for weather-aware picks.)";
     setMessages([{ id: "greeting", role: "godmother", text: greeting }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +105,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
       }
       setCameraOn(true);
     } catch {
-      setWeatherError((e) => e); // no-op, keep existing error state
       alert("Couldn't access your camera — check browser permissions.");
     }
   }
@@ -223,22 +221,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, savedLocat
           Chat for outfit picks — weather-aware, and shown on you live.
         </p>
       </div>
-
-      {weatherError && !weather && (
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            className="text-input"
-            placeholder="Your city (for weather-aware picks)"
-            value={cityInput}
-            onChange={(e) => setCityInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCityLookup()}
-            style={{ fontSize: "0.85rem" }}
-          />
-          <button onClick={handleCityLookup} className="btn-glass" style={{ padding: "8px 16px", fontSize: "0.8rem" }}>
-            Go
-          </button>
-        </div>
-      )}
 
       <div>
         {!photo && !cameraOn && (
