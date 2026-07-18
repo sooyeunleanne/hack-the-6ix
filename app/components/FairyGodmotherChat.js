@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
 let idCounter = 0;
 const nextId = () => `msg-${Date.now()}-${idCounter++}`;
 
-export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion }) {
-  const [weather, setWeather] = useState(null);
-  const [weatherError, setWeatherError] = useState(null);
+// weather/weatherError/onCityLookup are lifted up to DashboardClient so the
+// header and this chat share one geolocation lookup instead of each
+// prompting the browser separately.
+export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggestion, weather, weatherError, onCityLookup }) {
   const [cityInput, setCityInput] = useState("");
 
   const [cameraOn, setCameraOn] = useState(false);
@@ -23,29 +23,9 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
   const [sending, setSending] = useState(false);
   const logRef = useRef(null);
 
-  // Weather lookup — geolocation first, city fallback if denied/unsupported.
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setWeatherError("no-geo");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
-          setWeather(w);
-        } catch {
-          setWeatherError("lookup-failed");
-        }
-      },
-      () => setWeatherError("denied"),
-      { timeout: 8000 }
-    );
-  }, []);
-
   useEffect(() => {
     const greeting = weather
-      ? `It's ${weather.tempF}°F and ${weather.condition} out there. Tell me what you're in the mood for, and I'll find something in your closet.`
+      ? `It's ${weather.temp}°${weather.unit} and ${weather.condition} out there. Tell me what you're in the mood for, and I'll find something in your closet.`
       : "Tell me what you're in the mood for, and I'll find something in your closet. (Share your city below for weather-aware picks.)";
     setMessages([{ id: "greeting", role: "godmother", text: greeting }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,15 +41,8 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
     };
   }, []);
 
-  async function handleCityLookup() {
-    if (!cityInput.trim()) return;
-    try {
-      const w = await getWeatherByCity(cityInput.trim());
-      setWeather(w);
-      setWeatherError(null);
-    } catch (err) {
-      setWeatherError(err.message);
-    }
+  function handleCityLookup() {
+    onCityLookup?.(cityInput);
   }
 
   async function startCamera() {
@@ -82,7 +55,6 @@ export default function FairyGodmotherChat({ items, fullBodyPhotoUrl, onSuggesti
       }
       setCameraOn(true);
     } catch {
-      setWeatherError((e) => e); // no-op, keep existing error state
       alert("Couldn't access your camera — check browser permissions.");
     }
   }

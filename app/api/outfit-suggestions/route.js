@@ -7,7 +7,7 @@ import { hasGeminiKey, generateJson } from "../../../lib/gemini";
 function mockReply(items, message, weather) {
   const sorted = [...items].sort((a, b) => a.wear_count - b.wear_count);
   const picks = sorted.slice(0, Math.min(3, sorted.length));
-  const weatherBit = weather ? ` It's ${weather.tempF}°F and ${weather.condition} out there,` : "";
+  const weatherBit = weather ? ` It's ${weather.temp}°${weather.unit} and ${weather.condition} out there,` : "";
   return {
     itemIds: picks.map((i) => i._id.toString()),
     reply: `Demo mode (no GEMINI_API_KEY set):${weatherBit} so I pulled some of your least-worn pieces for you.`,
@@ -48,7 +48,7 @@ export async function POST(request) {
     .map((h) => `${h.role === "user" ? "User" : "You"}: ${h.text}`)
     .join("\n");
 
-  const weatherText = weather ? `Current weather: ${weather.tempF}°F, ${weather.condition}.` : "Weather unknown.";
+  const weatherText = weather ? `Current weather: ${weather.temp}°${weather.unit}, ${weather.condition}.` : "Weather unknown.";
 
   const prompt = `You are a warm, encouraging fairy-godmother personal stylist chatting with the user about what to wear.
 ${weatherText}
