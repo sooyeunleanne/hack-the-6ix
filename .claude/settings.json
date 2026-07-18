@@ -16,7 +16,9 @@
       "Read(//opt/cisco/secureclient/**)",
       "Read(//Library/Application Support/Fortinet/**)",
       "Bash(sw_vers)",
-      "Bash(lsof -i:3000)"
+      "Bash(lsof -i:3000)",
+      "Bash(git commit *)",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }
