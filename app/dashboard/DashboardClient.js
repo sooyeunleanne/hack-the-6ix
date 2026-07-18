@@ -9,6 +9,7 @@ import DonateNudges from "../components/DonateNudges";
 import FairyGodmotherChat from "../components/FairyGodmotherChat";
 import ShoppingListPanel from "../components/ShoppingListPanel";
 import FairyGodmother from "../components/FairyGodmother";
+import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -21,11 +22,45 @@ export default function DashboardClient({ user, initialItems }) {
   const [items, setItems] = useState(sortByWear(initialItems));
   const [showUpload, setShowUpload] = useState(false);
   const [godmotherLine, setGodmotherLine] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState(null);
 
   useEffect(() => {
     const t = setTimeout(() => setShowIntro(false), 1500);
     return () => clearTimeout(t);
   }, []);
+
+  // Fetched once here (not in FairyGodmotherChat) so both the header and
+  // the chat share one result instead of triggering two geolocation prompts.
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setWeatherError("no-geo");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const w = await getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
+          setWeather(w);
+        } catch {
+          setWeatherError("lookup-failed");
+        }
+      },
+      () => setWeatherError("denied"),
+      { timeout: 8000 }
+    );
+  }, []);
+
+  async function handleCityLookup(city) {
+    if (!city.trim()) return;
+    try {
+      const w = await getWeatherByCity(city.trim());
+      setWeather(w);
+      setWeatherError(null);
+    } catch (err) {
+      setWeatherError(err.message);
+    }
+  }
 
   const donateCandidates = useMemo(() => {
     const cutoff = Date.now() - DONATE_STALE_DAYS * 24 * 60 * 60 * 1000;
@@ -123,6 +158,12 @@ export default function DashboardClient({ user, initialItems }) {
             <p style={{ margin: "4px 0 0", color: "var(--periwinkle-soft)" }}>
               Welcome back, {user.name.split(" ")[0]} ✨
             </p>
+            {weather && (
+              <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--periwinkle-soft)" }}>
+                {weather.icon} Today&apos;s weather: {weather.temp}°{weather.unit}, {weather.condition}
+                {weather.locationLabel ? ` in ${weather.locationLabel}` : ""}
+              </p>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <button className="btn-gold" onClick={() => setShowUpload(true)}>
@@ -168,7 +209,14 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <FairyGodmotherChat items={items} fullBodyPhotoUrl={user.fullBodyPhotoUrl} onSuggestion={setGodmotherLine} />
+            <FairyGodmotherChat
+              items={items}
+              fullBodyPhotoUrl={user.fullBodyPhotoUrl}
+              onSuggestion={setGodmotherLine}
+              weather={weather}
+              weatherError={weatherError}
+              onCityLookup={handleCityLookup}
+            />
             <ShoppingListPanel items={items} onSuggestion={setGodmotherLine} />
           </div>
         </section>

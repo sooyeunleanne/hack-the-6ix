@@ -70,7 +70,7 @@ export function installMockApi() {
       const body = JSON.parse(init.body || "{}");
       const shuffled = [...MOCK_ITEMS].sort(() => Math.random() - 0.5);
       const picks = shuffled.slice(0, 2 + Math.floor(Math.random() * 2));
-      const weatherBit = body.weather ? ` It's ${body.weather.tempF}°F and ${body.weather.condition} out there —` : "";
+      const weatherBit = body.weather ? ` It's ${body.weather.temp}°${body.weather.unit} and ${body.weather.condition} out there —` : "";
       const line = MOCK_NOTES[Math.floor(Math.random() * MOCK_NOTES.length)];
       return jsonResponse({
         itemIds: picks.map((i) => i.id),
