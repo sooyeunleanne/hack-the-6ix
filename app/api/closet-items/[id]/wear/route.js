@@ -15,7 +15,8 @@ export async function POST(request, { params }) {
   const user = await getUserByAuth0Id(session.user.sub);
   if (!user) return NextResponse.json({ error: "User not synced" }, { status: 404 });
 
-  await markWorn(params.id);
+  const worn = await markWorn(params.id, user._id);
+  if (!worn) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));
   const itemIds = body.itemIds || [params.id];

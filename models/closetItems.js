@@ -53,12 +53,13 @@ export async function deleteClosetItem(itemId, userId) {
   return result.deletedCount > 0;
 }
 
-export async function markWorn(itemId) {
+export async function markWorn(itemId, userId) {
   const db = await getDb();
-  await db.collection("closet_items").updateOne(
-    { _id: new ObjectId(itemId) },
+  const result = await db.collection("closet_items").updateOne(
+    { _id: new ObjectId(itemId), user_id: new ObjectId(userId) },
     { $inc: { wear_count: 1 }, $set: { last_worn_at: new Date() } }
   );
+  return result.matchedCount > 0;
 }
 
 // Donation-nudge heuristic: never worn + older than staleDays.
