@@ -70,17 +70,28 @@ export async function markWorn(itemId, userId) {
   return result.matchedCount > 0;
 }
 
-// Donation-nudge heuristic: never worn + older than staleDays.
-// Bottom-20%-by-wear-count can be layered on top of this in the UI/route
-// once there's real usage data to rank against.
-export async function getDonationCandidates(userId, { staleDays = 60 } = {}) {
+// Donation-nudge heuristic: never worn + older than staleDays. New closets
+// (everything added within the last staleDays) would otherwise never see
+// this feature at all, so when nothing clears that bar yet, fall back to
+// the never-worn items regardless of age — still real candidates, just not
+// "stale" ones yet.
+export async function getDonationCandidates(userId, { staleDays = 60, fallbackLimit = 5 } = {}) {
   const db = await getDb();
+  const collection = db.collection("closet_items");
   const cutoff = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
-  return db.collection("closet_items").find({
+
+  const stale = await collection.find({
     user_id: new ObjectId(userId),
     wear_count: 0,
     created_at: { $lt: cutoff }
   }).toArray();
+  if (stale.length > 0) return stale;
+
+  return collection
+    .find({ user_id: new ObjectId(userId), wear_count: 0 })
+    .sort({ created_at: 1 })
+    .limit(fallbackLimit)
+    .toArray();
 }
 
 // Same category + at least one shared color tag — the "you own three

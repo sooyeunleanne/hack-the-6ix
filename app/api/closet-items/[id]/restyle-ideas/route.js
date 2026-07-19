@@ -15,7 +15,8 @@ export async function GET(request, { params }) {
   const user = await getUserByAuth0Id(session.user.sub);
   if (!user) return NextResponse.json({ error: "User not synced" }, { status: 404 });
 
-  const item = await getClosetItemById(params.id, user._id);
+  const { id } = await params;
+  const item = await getClosetItemById(id, user._id);
   if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
 
   const allItems = await getClosetItemsByUser(user._id);

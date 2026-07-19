@@ -9,6 +9,12 @@ function daysSince(date) {
   return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
 }
 
+// A same-day upload has idleDays === 0 — "0 days unworn" reads like a typo,
+// not a stat, so it gets its own phrase instead of the numeric punchline.
+function idleStat(idleDays) {
+  return idleDays > 0 ? `${idleDays} days unworn` : "Never worn yet";
+}
+
 function describeItem(item) {
   const color = (item.color_tags || [])[0];
   return {
@@ -30,7 +36,8 @@ export async function GET(request, { params }) {
   const user = await getUserByAuth0Id(session.user.sub);
   if (!user) return NextResponse.json({ error: "User not synced" }, { status: 404 });
 
-  const item = await getClosetItemById(params.id, user._id);
+  const { id } = await params;
+  const item = await getClosetItemById(id, user._id);
   if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
 
   const idleDays = daysSince(item.last_worn_at || item.created_at);
@@ -41,12 +48,13 @@ export async function GET(request, { params }) {
     ? siblings.reduce((best, s) => (s.wearCount > best.wearCount ? s : best), siblings[0])
     : null;
 
+  const stat = idleStat(idleDays);
   const fallback = {
     explanation: favoriteSibling && favoriteSibling.wearCount > 0
-      ? `${idleDays} days unworn - you reach for the ${favoriteSibling.fit || "other"} one instead.`
+      ? `${stat} - you reach for the ${favoriteSibling.fit || "other"} one instead.`
       : similar.length > 0
-      ? `${idleDays} days unworn, ${similar.length} similar piece${similar.length === 1 ? "" : "s"} already in rotation.`
-      : `${idleDays} days unworn.`,
+      ? `${stat}, ${similar.length} similar piece${similar.length === 1 ? "" : "s"} already in rotation.`
+      : `${stat}.`,
     recommendation: "donate"
   };
 
@@ -66,7 +74,7 @@ export async function GET(request, { params }) {
 
 Facts (JSON): ${JSON.stringify(facts)}
 
-Write ONE short, punchy sentence (under 14 words) explaining why this item might be worth donating. Lead with the idle days as a number, not a full clause. If mostWornSimilarItem is given, punch up the fact they reach for that one instead (mention its fit if provided). Otherwise if similarItemCount > 0, mention the count. Skip filler words like "hasn't been worn" or "it's been sitting" — state it tersely, like a stat. Examples of the tone wanted: "428 days unworn — you always grab the oversized one instead." / "60 days idle, 3 similar tops already in rotation." Do not use double quotation marks inside the reply text. Respond with ONLY JSON: {"explanation": "...", "recommendation": "donate" | "sell" | "keep"}. Use "keep" only if idleDays is under 90 and there are no similar items.`;
+Write ONE short, punchy sentence (under 14 words) explaining why this item might be worth donating. Lead with the idle days as a number, not a full clause — UNLESS idleDays is 0, in which case say "Never worn yet" instead of "0 days unworn" (a same-day upload isn't idle, it just hasn't been worn). If mostWornSimilarItem is given, punch up the fact they reach for that one instead (mention its fit if provided). Otherwise if similarItemCount > 0, mention the count. Skip filler words like "hasn't been worn" or "it's been sitting" — state it tersely, like a stat. Examples of the tone wanted: "428 days unworn — you always grab the oversized one instead." / "60 days idle, 3 similar tops already in rotation." / "Never worn yet, and 2 similar tops are already in rotation." Do not use double quotation marks inside the reply text. Respond with ONLY JSON: {"explanation": "...", "recommendation": "donate" | "sell" | "keep"}. Use "keep" only if idleDays is under 90 and there are no similar items.`;
 
   try {
     const result = await generateJson(prompt);
