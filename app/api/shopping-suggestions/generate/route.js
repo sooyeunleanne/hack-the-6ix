@@ -5,6 +5,7 @@ import { getClosetItemsByUser } from "../../../../models/closetItems";
 import { saveSuggestion } from "../../../../models/shoppingSuggestions";
 import { hasGeminiKey, generateJson } from "../../../../lib/gemini";
 import { nearestColorName } from "../../../../lib/colorNames";
+import { checkRateLimit } from "../../../../lib/rateLimit";
 
 const STARTER_SUGGESTIONS = [
   { name: "White sneakers", category: "Shoes", colorTags: ["white"], reason: "A neutral shoe that pairs with almost everything you own." },
@@ -37,6 +38,11 @@ export async function POST(request) {
   let result;
   if (!hasGeminiKey()) {
     result = mockSuggestions(items);
+  } else if (!(await checkRateLimit(user._id, "shopping-suggestions", { limit: 15, windowSeconds: 600 })).allowed) {
+    return NextResponse.json(
+      { error: "Too many requests — please wait a bit and try again." },
+      { status: 429, headers: { "Retry-After": "600" } }
+    );
   } else {
     const catalog = items.map((i) => ({
       category: i.category,

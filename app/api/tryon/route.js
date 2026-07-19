@@ -6,6 +6,7 @@ import { getCachedTryon, saveTryonResult } from "../../../models/tryonCache";
 import { hasGeminiKey } from "../../../lib/gemini";
 import { generateImage } from "../../../lib/nanoBanana";
 import { dataUrlToInlineImage } from "../../../lib/imageUtils";
+import { checkRateLimit } from "../../../lib/rateLimit";
 
 const PLACEHOLDER_SVG =
   "data:image/svg+xml;base64," +
@@ -43,6 +44,17 @@ export async function POST(request) {
         ? "Upload a full-body photo in your profile to try this on for real."
         : "Add GEMINI_API_KEY to generate a real try-on."
     });
+  }
+
+  // Past this point every request triggers a real (paid) Nano Banana image
+  // generation call — gate it per-user so a script or runaway retry loop
+  // can't blow through the Gemini image budget.
+  const rl = await checkRateLimit(user._id, "tryon", { limit: 15, windowSeconds: 600 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many try-on requests — please wait a bit and try again." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
   }
 
   // getClosetItemById is owner-scoped — pass user._id or every lookup 404s.

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth0 } from "../../../lib/auth0";
-import { analyzeClosetPhoto } from "../../../lib/gemini";
+import { hasGeminiKey, analyzeClosetPhoto } from "../../../lib/gemini";
 import { getUserByAuth0Id } from "../../../models/users";
 import { createClosetItem, getClosetItemsByUser } from "../../../models/closetItems";
+import { checkRateLimit } from "../../../lib/rateLimit";
 
 async function requireUser() {
   const session = await auth0.getSession();
@@ -41,6 +42,19 @@ export async function POST(request) {
   let resolvedStyleTags = [];
   let resolvedAttributes = {};
   let analysisNote = null;
+
+  // Batch uploads mean several of these per session are normal, so the
+  // limit needs headroom beyond a single item — but a scripted flood of
+  // uploads still shouldn't be able to run up the Gemini bill unbounded.
+  if (hasGeminiKey()) {
+    const rl = await checkRateLimit(user._id, "closet-analyze", { limit: 40, windowSeconds: 600 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many uploads in a short time — please wait a bit and try again." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+  }
 
   try {
     const analysis = await analyzeClosetPhoto({

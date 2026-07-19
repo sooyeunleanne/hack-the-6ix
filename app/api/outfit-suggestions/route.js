@@ -4,6 +4,7 @@ import { getUserByAuth0Id } from "../../../models/users";
 import { getClosetItemsByUser } from "../../../models/closetItems";
 import { hasGeminiKey, generateJson } from "../../../lib/gemini";
 import { nearestColorName } from "../../../lib/colorNames";
+import { checkRateLimit } from "../../../lib/rateLimit";
 
 function mockReply(items, message, weather) {
   const sorted = [...items].sort((a, b) => a.wear_count - b.wear_count);
@@ -36,6 +37,14 @@ export async function POST(request) {
 
   if (!hasGeminiKey()) {
     return NextResponse.json(mockReply(items, message, weather));
+  }
+
+  const rl = await checkRateLimit(user._id, "outfit-suggestions", { limit: 30, windowSeconds: 600 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests — please wait a bit and try again." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
   }
 
   const catalog = items.map((i) => ({

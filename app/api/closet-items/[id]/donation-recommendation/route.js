@@ -4,6 +4,7 @@ import { getUserByAuth0Id } from "../../../../../models/users";
 import { getClosetItemById, getSimilarItems } from "../../../../../models/closetItems";
 import { hasGeminiKey, generateJson } from "../../../../../lib/gemini";
 import { nearestColorName } from "../../../../../lib/colorNames";
+import { checkRateLimit } from "../../../../../lib/rateLimit";
 
 function daysSince(date) {
   return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
@@ -60,6 +61,13 @@ export async function GET(request, { params }) {
 
   if (!hasGeminiKey()) {
     return NextResponse.json({ ...fallback, mock: true });
+  }
+
+  // DonationPanel auto-fetches this for every candidate on load (up to 5),
+  // so the limit needs headroom beyond a single user action.
+  const rl = await checkRateLimit(user._id, "donation-recommendation", { limit: 60, windowSeconds: 600 });
+  if (!rl.allowed) {
+    return NextResponse.json({ ...fallback, mock: true, rateLimited: true });
   }
 
   const facts = {

@@ -3,6 +3,7 @@ import { auth0 } from "../../../../../lib/auth0";
 import { getUserByAuth0Id } from "../../../../../models/users";
 import { getClosetItemById, getClosetItemsByUser } from "../../../../../models/closetItems";
 import { hasGeminiKey, generateJson } from "../../../../../lib/gemini";
+import { checkRateLimit } from "../../../../../lib/rateLimit";
 
 // GET /api/closet-items/:id/restyle-ideas
 // Decision-tree step 1: "can it be styled differently?" — asks Gemini for
@@ -39,6 +40,11 @@ export async function GET(request, { params }) {
 
   if (!hasGeminiKey()) {
     return NextResponse.json(mockIdeas());
+  }
+
+  const rl = await checkRateLimit(user._id, "restyle-ideas", { limit: 30, windowSeconds: 600 });
+  if (!rl.allowed) {
+    return NextResponse.json({ ...mockIdeas(), rateLimited: true });
   }
 
   const prompt = `You are a creative fairy-godmother personal stylist. The user has an item they're considering donating because they never wear it, but first you want to show them it still has potential.

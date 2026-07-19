@@ -9,7 +9,8 @@ const migrations = [
   require("./002_create_closet_items"),
   require("./003_create_outfit_log"),
   require("./004_create_tryon_cache"),
-  require("./005_create_shopping_suggestions")
+  require("./005_create_shopping_suggestions"),
+  require("./006_create_rate_limits")
 ];
 
 async function run() {
