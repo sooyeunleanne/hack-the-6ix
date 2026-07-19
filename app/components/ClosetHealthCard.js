@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 // Fixed status hues (good/warning/critical) — not themed to the app's gold
 // palette on purpose, so the score reads as a status signal, not a style
 // choice. Color is paired with a text label, never carrying meaning alone.
@@ -20,6 +22,38 @@ function formatCompact(n) {
 }
 
 export default function ClosetHealthCard({ health }) {
+  const [displayedScore, setDisplayedScore] = useState(health?.score ?? 0);
+  const [pulsing, setPulsing] = useState(false);
+  const prevScoreRef = useRef(health?.score ?? 0);
+
+  // Animates the ring + number counting up (or down) to the new score
+  // instead of snapping instantly — this is the moment a donation/wear
+  // action is supposed to visibly pay off, so it needs to actually be seen.
+  useEffect(() => {
+    if (!health || health.score == null) return;
+    const from = prevScoreRef.current;
+    const to = health.score;
+    if (from === to) return;
+
+    setPulsing(true);
+    const duration = 900;
+    const start = performance.now();
+    let raf;
+    function tick(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayedScore(Math.round(from + (to - from) * eased));
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        prevScoreRef.current = to;
+        setPulsing(false);
+      }
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [health?.score]);
+
   if (!health || health.totalItems === 0) {
     return (
       <section className="glass-panel" style={{ padding: 26 }}>
@@ -31,17 +65,17 @@ export default function ClosetHealthCard({ health }) {
     );
   }
 
-  const status = getStatus(health.score);
+  const status = getStatus(displayedScore);
 
   return (
     <section className="glass-panel" style={{ padding: 26 }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 26, marginBottom: 24 }}>
         <div
-          className="health-meter"
-          style={{ "--score": health.score, "--meter-color": status.color }}
+          className={`health-meter${pulsing ? " health-meter-pulsing" : ""}`}
+          style={{ "--score": displayedScore, "--meter-color": status.color }}
         >
           <div className="health-meter-face">
-            <span className="health-meter-value">{health.score}</span>
+            <span className="health-meter-value">{displayedScore}</span>
             <span className="health-meter-max">/ 100</span>
           </div>
         </div>

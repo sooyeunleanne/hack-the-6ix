@@ -4,16 +4,27 @@ import { useEffect, useRef, useState } from "react";
 
 const CAPTURE_COUNTDOWN_SECONDS = 5;
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // Dedicated try-on section: owns the camera/photo capture flow and shows
 // the current outfit render. Kept separate from the chat so the chat stays
 // focused on conversation and this stays focused on "what does it look like."
 export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitImage, outfitLoading, outfitError }) {
   const [cameraOn, setCameraOn] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const countdownRef = useRef(null);
+  const fileRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -84,6 +95,23 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
     onPhotoCaptured(dataUrl);
   }
 
+  // Alternative to the live camera flow — pick an existing full-body photo
+  // instead of taking one in the moment.
+  async function handleFileUpload(file) {
+    if (!file) return;
+    setUploadError(null);
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please choose an image file.");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      onPhotoCaptured(dataUrl);
+    } catch {
+      setUploadError("Couldn't read that photo — try another one.");
+    }
+  }
+
   const displayImage = outfitImage || photo;
 
   return (
@@ -98,9 +126,25 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
       </div>
 
       {!photo && !cameraOn && (
-        <button onClick={startCamera} className="btn-glass" style={{ width: "100%" }}>
-          📷 Turn on camera
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button onClick={startCamera} className="btn-glass" style={{ width: "100%" }}>
+            📷 Turn on camera
+          </button>
+          <button onClick={() => fileRef.current?.click()} className="btn-glass" style={{ width: "100%" }}>
+            🖼️ Upload a photo instead
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              handleFileUpload(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          {uploadError && <p style={{ margin: 0, color: "var(--blush)", fontSize: "0.78rem" }}>{uploadError}</p>}
+        </div>
       )}
 
       {!photo && cameraOn && (
