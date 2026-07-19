@@ -56,24 +56,49 @@ export async function POST(request) {
   const itemImages = itemsWithImages.map((entry) => entry.image);
 
   try {
+    // Structured metadata per item (pulled from the Gemini tagging done at
+    // upload time — see analyzeClosetPhoto in lib/gemini.js) so the model is
+    // told the garment's exact hex/fit/material/silhouette instead of having
+    // to infer them from the reference photo alone, which is what let it
+    // drift into "close enough" redesigns.
     const itemList = itemsWithImages
       .map(({ item }, i) => {
-        const colors = (item.color_tags || []).join(", ") || "unspecified color";
-        return `  ${i + 2}. Reference photo ${i + 2}: ${item.category} (${colors})`;
+        const refNum = i + 2;
+        const hex = (item.color_tags || [])[0] || "unspecified";
+        const attr = item.attributes || {};
+        const fit = attr.fit && attr.fit !== "unknown" ? attr.fit : "unspecified";
+        const material = attr.material && attr.material !== "unknown" ? attr.material : "unspecified";
+        const silhouette = attr.silhouette && attr.silhouette !== "unknown" ? attr.silhouette : "unspecified";
+        const sleeve = attr.sleeveLength && attr.sleeveLength !== "unknown" ? attr.sleeveLength.replace("_", " ") : null;
+        const styleTags = (item.style_tags || []).slice(0, 4).join(", ") || "none";
+        const details = [
+          `primary color ${hex}`,
+          `fit ${fit}`,
+          `material ${material}`,
+          `silhouette ${silhouette}`,
+          sleeve ? `sleeve ${sleeve}` : null,
+          `style tags: ${styleTags}`
+        ].filter(Boolean).join(", ");
+        return `  Reference photo ${refNum} — ${item.category}: ${details}`;
       })
       .join("\n");
 
-    const prompt = `You are compositing a virtual try-on photo. Reference photo 1 is the person; the rest are their exact closet items:
+    const prompt = `You are a high-precision virtual try-on system compositing an outfit photo. Reference photo 1 is the person; each other reference photo is one exact closet item they own, with its real attributes listed below:
 ${itemList}
 
 Task: show the person from reference photo 1 wearing ALL of the closet items from the other reference photos, combined into one realistic, full-body outfit photo.
 
-Strict requirements:
-- Person: keep the face, identity, skin tone, body shape/proportions, and pose EXACTLY as in reference photo 1. Do not beautify, resize, or restyle the person.
-- Garments: reproduce each closet item's exact design — silhouette, cut, color, pattern, print, texture, fabric, logos, hardware, and trim — with zero alterations. Do not invent, substitute, recolor, or simplify any garment detail; every item must be visually traceable back to its reference photo.
-- Fit: drape and scale each item naturally to the person's actual body so it fits like a real photo of them wearing it (correct proportions, realistic folds/shadows, no floating or misaligned clothing).
-- Composition: single cohesive, well-lit, photorealistic full-body shot, plain neutral background, consistent lighting/shadows across the person and all garments.
-- Do not add accessories, clothing, or props that are not shown in the reference photos.`;
+1. GARMENT DESIGN PRESERVATION — for every item, match its reference photo exactly: silhouette, neckline/collar, sleeve length and style, seams, buttons/zippers/pockets, logos, graphics, patterns, and the listed primary color hex. Do not invent, substitute, recolor, simplify, or "redesign" any garment detail — every item must be visually traceable back to its own reference photo, not a similar-looking alternative.
+
+2. FIT AND BODY ALIGNMENT — drape and scale each item to the person's actual shoulder width, torso length, and body proportions from reference photo 1, matching the listed fit/silhouette (do not make an "oversized" item look fitted or vice versa). Render natural folds, fabric tension, and shadows at joints and seams. No floating, misaligned, or stretched-looking clothing.
+
+3. IDENTITY AND SCENE — keep the person's face, hairstyle, skin tone, body proportions, and pose completely unchanged from reference photo 1. Keep the camera angle and perspective consistent so front panels align with the torso direction and left/right garment details stay correctly placed. Do not add accessories, clothing, or props absent from the reference photos.
+
+4. MATERIAL REALISM — render each garment's listed material with appropriate physical behavior (e.g. cotton/knit soft and textured, denim structured and thick, satin/silk reflective, leather glossy with visible grain).
+
+5. COMPOSITION — single cohesive, well-lit, photorealistic full-body shot on a plain neutral background, with consistent lighting and shadow direction across the person and every garment.
+
+Before finalizing: check that every garment's color, silhouette, and design details match its reference photo exactly, with no hallucinated changes.`;
     const generatedImageUrl = await generateImage({
       prompt,
       images: [userPhoto, ...itemImages].filter(Boolean)
