@@ -289,9 +289,18 @@ export default function DashboardClient({ user, initialItems }) {
           }}
         >
           <div>
-            <h1 className="gold-text" style={{ fontSize: "1.9rem", margin: 0 }}>
-              Bibbity Bobbity Boo
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/bbblogo.jpg"
+                alt=""
+                width={200}
+                height={200}
+              />
+              <h1 className="gold-text" style={{ fontSize: "3rem", margin: 0 }}>
+                bibbidi-bobbidi-boo!
+              </h1>
+            </div>
             <p style={{ margin: "6px 0 0", color: "var(--periwinkle-soft)" }}>
               Welcome back, {user.name.split(" ")[0]}
             </p>
