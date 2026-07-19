@@ -30,10 +30,10 @@ body {
 
 body {
   font-family: var(--font-body);
-  color: var(--midnight);
+  color: var(--cream); /* 가독성을 위해 기본 텍스트 색상을 어두운 남색 대신 크림색으로 수정 */
   background: radial-gradient(
       circle at 20% 10%,
-      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0.15), /* 너무 밝아서 글자가 묻히지 않도록 투명도 조절 */
       transparent 40%
     ),
     linear-gradient(
@@ -49,10 +49,12 @@ body {
 
 a {
   color: inherit;
+  text-decoration: none;
 }
 
 button {
   font-family: inherit;
+  outline: none;
 }
 
 h1,
@@ -119,7 +121,7 @@ h3 {
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn-glass:hover {
+.btn-glass:hover:not(:disabled) {
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.28);
   box-shadow: 0 6px 18px rgba(240, 200, 90, 0.35);
@@ -138,25 +140,36 @@ h3 {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn-gold:hover {
+.btn-gold:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 10px 28px rgba(240, 200, 90, 0.6);
 }
 
 .btn-gold:disabled,
 .btn-glass:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 19, 48, 0.3);
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.25);
   border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 ::selection {
@@ -212,6 +225,13 @@ h3 {
   padding: 10px 14px;
   font-family: var(--font-body);
   font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.text-input:focus,
+.select-input:focus {
+  border-color: var(--gold);
 }
 
 .text-input::placeholder {
@@ -220,6 +240,7 @@ h3 {
 
 .select-input option {
   color: var(--midnight);
+  background: var(--cream);
 }
 
 html.has-custom-cursor,
@@ -236,6 +257,7 @@ html.has-custom-cursor * {
   padding-bottom: 14px;
   margin-bottom: 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-overflow-scrolling: touch;
 }
 
 .filter-pill {
@@ -267,10 +289,11 @@ html.has-custom-cursor * {
 /* Floating outfit tray — appears once items are selected for a look */
 .outfit-tray {
   position: fixed;
-  left: 24px;
+  left: 50%; /* 하단 중앙 정렬을 위해 수정 */
+  transform: translateX(-50%);
   bottom: 24px;
   z-index: 44;
-  width: min(400px, calc(100vw - 48px));
+  width: min(450px, calc(100vw - 32px));
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -281,13 +304,13 @@ html.has-custom-cursor * {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .outfit-tray-thumb {
   flex-shrink: 0;
-  width: 40px;
-  height: 50px;
+  width: 44px;
+  height: 54px;
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid var(--glass-border);
@@ -327,8 +350,7 @@ html.has-custom-cursor * {
   background: rgba(15, 19, 48, 0.75);
 }
 
-/* Tile delete button — a dark scrim so it stays legible over any photo,
-   with a red tint on hover/focus so the destructive action reads clearly. */
+/* Tile delete button */
 .tile-delete-btn {
   cursor: pointer;
   border: 1.5px solid rgba(255, 255, 255, 0.55);
@@ -348,8 +370,7 @@ html.has-custom-cursor * {
   cursor: not-allowed;
 }
 
-/* Least-worn badge — a nudge toward rotation. Solid dark scrim (like the
-   delete button) so it stays legible over any photo, not just light ones. */
+/* Least-worn badge */
 .least-worn-badge {
   display: inline-flex;
   align-items: center;
@@ -372,8 +393,7 @@ html.has-custom-cursor * {
   flex-shrink: 0;
 }
 
-/* Toggle to filter the closet down to only least-worn pieces — echoes the
-   badge's periwinkle accent so the two stay visually linked. */
+/* Toggle to filter the closet down to only least-worn pieces */
 .least-worn-toggle {
   cursor: pointer;
   display: inline-flex;
@@ -409,4 +429,76 @@ html.has-custom-cursor * {
   border-color: var(--periwinkle-soft);
   color: var(--cream);
   font-weight: 700;
+}
+
+/* Closet health panel — circular score meter + stat tiles */
+.health-meter {
+  position: relative;
+  flex-shrink: 0;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--meter-color) calc(var(--score) * 1%),
+    rgba(255, 255, 255, 0.12) 0
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 22px rgba(0, 0, 0, 0.25) inset;
+}
+
+.health-meter-face {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--midnight-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-soft);
+}
+
+.health-meter-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--cream);
+  line-height: 1;
+}
+
+.health-meter-max {
+  font-size: 0.68rem;
+  color: var(--periwinkle-soft);
+  margin-top: 2px;
+}
+
+.health-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+}
+
+.health-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+}
+
+.health-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--cream);
+}
+
+.health-stat-label {
+  font-size: 0.74rem;
+  color: var(--periwinkle-soft);
+  line-height: 1.3;
 }

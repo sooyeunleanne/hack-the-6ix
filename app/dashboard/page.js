@@ -10,6 +10,8 @@ function serializeItem(item) {
     imageUrl: item.image_url,
     category: item.category,
     colorTags: item.color_tags || [],
+    styleTags: item.style_tags || [],
+    attributes: item.attributes || {},
     wearCount: item.wear_count || 0,
     lastWornAt: item.last_worn_at ? item.last_worn_at.toISOString() : null,
     createdAt: item.created_at ? item.created_at.toISOString() : null

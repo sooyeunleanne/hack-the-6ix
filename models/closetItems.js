@@ -82,3 +82,15 @@ export async function getDonationCandidates(userId, { staleDays = 60 } = {}) {
     created_at: { $lt: cutoff }
   }).toArray();
 }
+
+// Same category + at least one shared color tag — the "you own three
+// similar black cardigans" comparison set for donation reasoning.
+export async function getSimilarItems(userId, item) {
+  const db = await getDb();
+  return db.collection("closet_items").find({
+    user_id: new ObjectId(userId),
+    _id: { $ne: new ObjectId(item._id) },
+    category: item.category,
+    color_tags: { $in: item.color_tags || [] }
+  }).toArray();
+}

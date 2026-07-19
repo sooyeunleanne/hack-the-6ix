@@ -50,11 +50,30 @@ export async function POST(request) {
   const validItems = items.filter(Boolean);
 
   const userPhoto = dataUrlToInlineImage(user.full_body_photo_url);
-  const itemImages = validItems.map((i) => dataUrlToInlineImage(i.image_url)).filter(Boolean);
+  const itemsWithImages = validItems
+    .map((item) => ({ item, image: dataUrlToInlineImage(item.image_url) }))
+    .filter((entry) => entry.image);
+  const itemImages = itemsWithImages.map((entry) => entry.image);
 
   try {
-    const prompt =
-      "Take the person in the first reference photo and show them wearing the clothing items shown in the following reference photos, combined into one realistic, flattering full-body outfit photo. Keep their face, body, and pose consistent with the first photo.";
+    const itemList = itemsWithImages
+      .map(({ item }, i) => {
+        const colors = (item.color_tags || []).join(", ") || "unspecified color";
+        return `  ${i + 2}. Reference photo ${i + 2}: ${item.category} (${colors})`;
+      })
+      .join("\n");
+
+    const prompt = `You are compositing a virtual try-on photo. Reference photo 1 is the person; the rest are their exact closet items:
+${itemList}
+
+Task: show the person from reference photo 1 wearing ALL of the closet items from the other reference photos, combined into one realistic, full-body outfit photo.
+
+Strict requirements:
+- Person: keep the face, identity, skin tone, body shape/proportions, and pose EXACTLY as in reference photo 1. Do not beautify, resize, or restyle the person.
+- Garments: reproduce each closet item's exact design — silhouette, cut, color, pattern, print, texture, fabric, logos, hardware, and trim — with zero alterations. Do not invent, substitute, recolor, or simplify any garment detail; every item must be visually traceable back to its reference photo.
+- Fit: drape and scale each item naturally to the person's actual body so it fits like a real photo of them wearing it (correct proportions, realistic folds/shadows, no floating or misaligned clothing).
+- Composition: single cohesive, well-lit, photorealistic full-body shot, plain neutral background, consistent lighting/shadows across the person and all garments.
+- Do not add accessories, clothing, or props that are not shown in the reference photos.`;
     const generatedImageUrl = await generateImage({
       prompt,
       images: [userPhoto, ...itemImages].filter(Boolean)
