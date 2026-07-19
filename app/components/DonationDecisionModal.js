@@ -171,7 +171,7 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={onClose} className="btn-gold" style={{ flex: 1, fontSize: "0.8rem" }}>
-                  Love it — I&apos;ll keep it!
+                  Love it - I&apos;ll keep it!
                 </button>
                 <button onClick={() => setStep("final")} className="btn-glass" style={{ flex: 1, fontSize: "0.8rem" }}>
                   Still not interested
@@ -183,12 +183,12 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
           {step === "final" && (
             <motion.div key="final" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--cream)" }}>
-                No shame in that — let&apos;s give it a new home instead.
+                No shame in that - let&apos;s give it a new home instead.
               </p>
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={handleRemove} className="btn-gold" style={{ flex: 1, fontSize: "0.85rem", padding: "13px 10px" }}>
-                  🌱 Mark as Donated
+                  🌱 Mark as Recycled
                 </button>
                 <button onClick={onClose} className="btn-glass" style={{ flex: 1, fontSize: "0.85rem", padding: "13px 10px" }}>
                   Keep for now
@@ -260,7 +260,7 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
 
               {shareState === "error" && (
                 <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--blush)" }}>
-                  Sharing didn&apos;t work on this browser — try copying or downloading instead.
+                  Sharing didn&apos;t work on this browser - try copying or downloading instead.
                 </p>
               )}
 
@@ -269,7 +269,7 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
                   ← Back
                 </button>
                 <button onClick={handleRemove} className="btn-gold" style={{ flex: 1, fontSize: "0.75rem" }}>
-                  🌱 Mark as Donated
+                  🌱 Mark as Recycled
                 </button>
               </div>
             </motion.div>

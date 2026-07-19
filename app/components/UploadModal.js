@@ -177,7 +177,7 @@ export default function UploadModal({ onClose, onAdded }) {
 
     setSubmitting(false);
     if (failures.length > 0) {
-      setSubmitError(`${failures.length} item(s) failed to add — ${failures.join("; ")}`);
+      setSubmitError(`${failures.length} item(s) failed to add - ${failures.join("; ")}`);
       setDrafts((prev) => prev.filter((d) => failures.some((f) => f.startsWith(d.file.name))));
     } else {
       onClose();

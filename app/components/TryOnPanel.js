@@ -49,7 +49,7 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
       streamRef.current = stream;
       setCameraOn(true);
     } catch {
-      alert("Couldn't access your camera — check browser permissions.");
+      alert("Couldn't access your camera - check browser permissions.");
     }
   }
 
@@ -108,7 +108,7 @@ export default function TryOnPanel({ photo, onPhotoCaptured, onRetake, outfitIma
       const dataUrl = await readFileAsDataUrl(file);
       onPhotoCaptured(dataUrl);
     } catch {
-      setUploadError("Couldn't read that photo — try another one.");
+      setUploadError("Couldn't read that photo - try another one.");
     }
   }
 

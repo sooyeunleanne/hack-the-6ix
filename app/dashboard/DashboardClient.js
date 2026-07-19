@@ -249,7 +249,7 @@ export default function DashboardClient({ user, initialItems }) {
     const res = await fetch(`/api/closet-items/${itemId}`, { method: "DELETE" });
     if (!res.ok) return;
     setItems((prev) => prev.filter((item) => item.id !== itemId));
-    setGodmotherLine("Gone from the closet — poof! ✨");
+    setGodmotherLine("Gone from the closet - poof! ✨");
   }
 
   // Marking an item donated is the payoff moment for the sustainability
@@ -382,7 +382,7 @@ export default function DashboardClient({ user, initialItems }) {
           <div>
             <h2 style={{ fontSize: "1.3rem", color: "var(--cream)", marginBottom: 6 }}>Your Closet</h2>
             <p style={{ margin: "0 0 16px", color: "var(--periwinkle-soft)", fontSize: "0.85rem" }}>
-              Least-worn pieces step to the front — tap a photo to build an outfit.
+              Least-worn pieces step to the front - tap a photo to build an outfit.
             </p>
 
             <button

@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 
 async function shareItem(item) {
-  const text = `Never worn this ${item.category.toLowerCase()} — up for grabs! 🪄`;
+  const text = `Never worn this ${item.category.toLowerCase()} - up for grabs! 🪄`;
   if (navigator.share) {
     try {
       await navigator.share({ title: "bibbidi-bobbidi-boo!", text });

@@ -10,17 +10,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 - **Language:** JavaScript (base codebase)
 - **AI / External APIs:**
-  - **Google Nano Banana API** — image processing: virtual try-on of outfit sets composed from closet items, applied over the user's full-body profile photo
-  - **Google Gemini** — outfit suggestions (weather-based, color-based, vibe-based), shopping list suggestions, fashion-trend analysis
-  - **ElevenLabs (11Labs)** — voice assistant for conversational fashion advice and item queries
+  — **Google Nano Banana API** — image processing: virtual try-on of outfit sets composed from closet items, applied over the user's full-body profile photo
+  — **Google Gemini** — outfit suggestions (weather-based, color-based, vibe-based), shopping list suggestions, fashion-trend analysis
+  — **ElevenLabs (11Labs)** — voice assistant for conversational fashion advice and item queries
 
 ## Core Features
 
 ### 1. Closet Logging
 - Users log closet items (clothing + accessories: hats, scarves, jewelry, shoes, bags, etc.)
 - Each item is tagged with:
-  - **Color tags** — colors are analyzed and stored as **hex codes** (e.g. `#FF6B9D`)
-  - **Category tags** — e.g. top, bottom, outerwear, shoes, accessory
+  — **Color tags** — colors are analyzed and stored as **hex codes** (e.g. `#FF6B9D`)
+  — **Category tags** — e.g. top, bottom, outerwear, shoes, accessory
 
 ### 2. User Profile
 - On onboarding, the user takes/uploads a **full-body photo** stored in their profile

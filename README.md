@@ -14,15 +14,15 @@ instead of waiting on the backend.
    ```
 
 2. **Create an Auth0 app**
-   - In the [Auth0 Dashboard](https://manage.auth0.com), create an application of type **Regular Web Application**.
-   - Add `http://localhost:3000/auth/callback` to **Allowed Callback URLs**.
-   - Add `http://localhost:3000` to **Allowed Logout URLs**.
-   - Grab the Domain, Client ID, and Client Secret.
+   — In the [Auth0 Dashboard](https://manage.auth0.com), create an application of type **Regular Web Application**.
+   — Add `http://localhost:3000/auth/callback` to **Allowed Callback URLs**.
+   — Add `http://localhost:3000` to **Allowed Logout URLs**.
+   — Grab the Domain, Client ID, and Client Secret.
 
 3. **Create a MongoDB Atlas cluster**
-   - Free tier (M0) is fine for this.
-   - Create a database user + get your connection string.
-   - Whitelist your IP (or `0.0.0.0/0` for hackathon speed — tighten later if you care).
+   — Free tier (M0) is fine for this.
+   — Create a database user + get your connection string.
+   — Whitelist your IP (or `0.0.0.0/0` for hackathon speed — tighten later if you care).
 
 4. **Set up env vars**
 

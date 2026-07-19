@@ -56,7 +56,7 @@ export default function DonationPanel({ items, onDelete }) {
           🎀 Worth Donating?
         </h3>
         <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--periwinkle-soft)" }}>
-          Pieces that have sat unworn a while — with a reason, not just a wear count.
+          Pieces that have sat unworn a while - with a reason, not just a wear count.
         </p>
       </div>
 

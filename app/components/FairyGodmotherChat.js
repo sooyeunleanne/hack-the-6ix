@@ -110,7 +110,7 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
       recorder.start();
       setRecording(true);
     } catch {
-      alert("Couldn't access your microphone — check browser permissions.");
+      alert("Couldn't access your microphone - check browser permissions.");
     }
   }
 
@@ -155,7 +155,7 @@ export default function FairyGodmotherChat({ items, onSuggestion, onSuggestItems
         onSuggestItems?.(data.itemIds);
       }
     } catch (err) {
-      setMessages((prev) => [...prev, { id: nextId(), role: "godmother", text: `Oh dear — ${err.message}` }]);
+      setMessages((prev) => [...prev, { id: nextId(), role: "godmother", text: `Oh dear - ${err.message}` }]);
     } finally {
       setSending(false);
     }

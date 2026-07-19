@@ -43,7 +43,7 @@ export async function GET(request, { params }) {
 
   const fallback = {
     explanation: favoriteSibling && favoriteSibling.wearCount > 0
-      ? `${idleDays} days unworn — you reach for the ${favoriteSibling.fit || "other"} one instead.`
+      ? `${idleDays} days unworn - you reach for the ${favoriteSibling.fit || "other"} one instead.`
       : similar.length > 0
       ? `${idleDays} days unworn, ${similar.length} similar piece${similar.length === 1 ? "" : "s"} already in rotation.`
       : `${idleDays} days unworn.`,
