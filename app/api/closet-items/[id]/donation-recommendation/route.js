@@ -42,10 +42,11 @@ export async function GET(request, { params }) {
     : null;
 
   const fallback = {
-    explanation:
-      similar.length > 0
-        ? `Hasn't been worn in ${idleDays} days, and there are ${similar.length} similar item${similar.length === 1 ? "" : "s"} in the closet already.`
-        : `Hasn't been worn in ${idleDays} days.`,
+    explanation: favoriteSibling && favoriteSibling.wearCount > 0
+      ? `${idleDays} days unworn — you reach for the ${favoriteSibling.fit || "other"} one instead.`
+      : similar.length > 0
+      ? `${idleDays} days unworn, ${similar.length} similar piece${similar.length === 1 ? "" : "s"} already in rotation.`
+      : `${idleDays} days unworn.`,
     recommendation: "donate"
   };
 
@@ -65,7 +66,7 @@ export async function GET(request, { params }) {
 
 Facts (JSON): ${JSON.stringify(facts)}
 
-Write a short (2-3 sentence) explanation of why this item might be worth donating, specifically referencing the idle days and, if similarItemCount > 0, the fact that similar items exist — and if mostWornSimilarItem is given, that they consistently reach for that one instead (mention its fit if provided, e.g. "the oversized one"). Do not use double quotation marks inside the reply text. Respond with ONLY JSON: {"explanation": "...", "recommendation": "donate" | "sell" | "keep"}. Use "keep" only if idleDays is under 90 and there are no similar items.`;
+Write ONE short, punchy sentence (under 14 words) explaining why this item might be worth donating. Lead with the idle days as a number, not a full clause. If mostWornSimilarItem is given, punch up the fact they reach for that one instead (mention its fit if provided). Otherwise if similarItemCount > 0, mention the count. Skip filler words like "hasn't been worn" or "it's been sitting" — state it tersely, like a stat. Examples of the tone wanted: "428 days unworn — you always grab the oversized one instead." / "60 days idle, 3 similar tops already in rotation." Do not use double quotation marks inside the reply text. Respond with ONLY JSON: {"explanation": "...", "recommendation": "donate" | "sell" | "keep"}. Use "keep" only if idleDays is under 90 and there are no similar items.`;
 
   try {
     const result = await generateJson(prompt);

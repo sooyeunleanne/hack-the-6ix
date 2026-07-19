@@ -181,43 +181,52 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
           )}
 
           {step === "final" && (
-            <motion.div key="final" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <motion.div key="final" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--cream)" }}>
                 No shame in that — let&apos;s give it a new home instead.
               </p>
+
               <div style={{ display: "flex", gap: 8 }}>
-                <a
-                  href="https://www.google.com/maps/search/clothing+donation+near+me"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-glass"
-                  style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "0.78rem", padding: "10px 8px" }}
-                >
-                  Donate
-                </a>
-                <a
-                  href="https://www.google.com/search?q=sell+clothes+online+near+me"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-glass"
-                  style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "0.78rem", padding: "10px 8px" }}
-                >
-                  Sell
-                </a>
-                <button
-                  onClick={() => setStep("share")}
-                  className="btn-glass"
-                  style={{ flex: 1, fontSize: "0.78rem", padding: "10px 8px" }}
-                >
-                  Swap
+                <button onClick={handleRemove} className="btn-gold" style={{ flex: 1, fontSize: "0.85rem", padding: "13px 10px" }}>
+                  🌱 Mark as Donated
+                </button>
+                <button onClick={onClose} className="btn-glass" style={{ flex: 1, fontSize: "0.85rem", padding: "13px 10px" }}>
+                  Keep for now
                 </button>
               </div>
-              <button onClick={handleRemove} className="btn-gold" style={{ fontSize: "0.8rem" }}>
-                Done — remove it from my closet
-              </button>
-              <button onClick={onClose} className="btn-glass" style={{ fontSize: "0.75rem" }}>
-                Actually, I&apos;ll keep it for now
-              </button>
+
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: "0.72rem", color: "var(--periwinkle-soft)" }}>
+                  Need a place to take it?
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a
+                    href="https://www.google.com/maps/search/clothing+donation+near+me"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-glass"
+                    style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "0.75rem", padding: "9px 8px" }}
+                  >
+                    Donate
+                  </a>
+                  <a
+                    href="https://www.google.com/search?q=sell+clothes+online+near+me"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-glass"
+                    style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "0.75rem", padding: "9px 8px" }}
+                  >
+                    Sell
+                  </a>
+                  <button
+                    onClick={() => setStep("share")}
+                    className="btn-glass"
+                    style={{ flex: 1, fontSize: "0.75rem", padding: "9px 8px" }}
+                  >
+                    Swap
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -260,7 +269,7 @@ export default function DonationDecisionModal({ item, items, onClose, onResolved
                   ← Back
                 </button>
                 <button onClick={handleRemove} className="btn-gold" style={{ flex: 1, fontSize: "0.75rem" }}>
-                  Done — remove it from my closet
+                  🌱 Mark as Donated
                 </button>
               </div>
             </motion.div>

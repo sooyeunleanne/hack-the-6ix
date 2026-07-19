@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SparkleField from "../components/SparkleField";
 import ClosetGrid, { getLeastWornIds } from "../components/ClosetGrid";
@@ -13,6 +13,7 @@ import ClosetHealthCard from "../components/ClosetHealthCard";
 import { getWeatherByCoords, getWeatherByCity } from "../../lib/weather";
 import { suggestOutfitMatches } from "../../lib/outfitMatching";
 import { computeClosetHealth } from "../../lib/sustainability";
+import { nearestColorName } from "../../lib/colorNames";
 
 const DONATE_STALE_DAYS = 45;
 
@@ -39,16 +40,33 @@ export default function DashboardClient({ user, initialItems }) {
   const [weatherError, setWeatherError] = useState(null);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [closetCategory, setClosetCategory] = useState("All");
+  const [closetColor, setClosetColor] = useState("All");
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [leastWornOnly, setLeastWornOnly] = useState(false);
   const [outfitImage, setOutfitImage] = useState(null);
   const [outfitLoading, setOutfitLoading] = useState(false);
   const [outfitError, setOutfitError] = useState(null);
   const [photo, setPhoto] = useState(user.fullBodyPhotoUrl);
+  const closetHealthRef = useRef(null);
 
   const categories = useMemo(
     () => ["All", "Outerwear", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Bag", "Other"],
     []
   );
+
+  // Groups every item's raw color tags (hex or legacy name strings) into
+  // the same curated named buckets used for display elsewhere, keeping one
+  // representative raw tag per bucket to use as the pill's swatch color.
+  const colorOptions = useMemo(() => {
+    const byName = new Map();
+    items.forEach((item) => {
+      (item.colorTags || []).forEach((tag) => {
+        const name = nearestColorName(tag);
+        if (!byName.has(name)) byName.set(name, tag);
+      });
+    });
+    return Array.from(byName.entries()).map(([name, swatch]) => ({ name, swatch }));
+  }, [items]);
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedItemIds.includes(item.id)),
@@ -62,9 +80,12 @@ export default function DashboardClient({ user, initialItems }) {
 
   const filteredItems = useMemo(() => {
     let result = closetCategory === "All" ? items : items.filter((item) => item.category === closetCategory);
+    if (closetColor !== "All") {
+      result = result.filter((item) => (item.colorTags || []).some((tag) => nearestColorName(tag) === closetColor));
+    }
     if (leastWornOnly) result = result.filter((item) => leastWornIds.has(item.id));
     return result;
-  }, [items, closetCategory, leastWornOnly, leastWornIds]);
+  }, [items, closetCategory, closetColor, leastWornOnly, leastWornIds]);
 
   // Recomputes live as the outfit selection changes: for every unselected
   // item, the best-scoring match against whatever's already picked, across
@@ -231,6 +252,15 @@ export default function DashboardClient({ user, initialItems }) {
     setGodmotherLine("Gone from the closet — poof! ✨");
   }
 
+  // Marking an item donated is the payoff moment for the sustainability
+  // score — scroll it into view so the animated tick-up in ClosetHealthCard
+  // actually gets seen, since the donation panel sits at the bottom of the
+  // right column while the score card lives up at the top of the page.
+  async function handleItemDonated(itemId) {
+    await handleDelete(itemId);
+    closetHealthRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
     <main style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <SparkleField count={30} />
@@ -344,7 +374,9 @@ export default function DashboardClient({ user, initialItems }) {
           </div>
         </header>
 
-        <ClosetHealthCard health={closetHealth} />
+        <div ref={closetHealthRef}>
+          <ClosetHealthCard health={closetHealth} />
+        </div>
 
         <section className="dashboard-grid" style={{ marginTop: 32 }}>
           <div>
@@ -376,6 +408,98 @@ export default function DashboardClient({ user, initialItems }) {
               ))}
             </div>
 
+            {colorOptions.length > 0 && (
+              <div style={{ position: "relative", display: "inline-block", marginBottom: 22 }}>
+                <button
+                  type="button"
+                  onClick={() => setColorMenuOpen((v) => !v)}
+                  className={`filter-pill${closetColor !== "All" ? " active" : ""}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: closetColor !== "All" ? "rgba(240,200,90,0.22)" : "rgba(15,19,48,0.75)"
+                  }}
+                >
+                  {closetColor !== "All" && (
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        background: colorOptions.find((c) => c.name === closetColor)?.swatch,
+                        border: "1px solid rgba(255,255,255,0.35)",
+                        flexShrink: 0
+                      }}
+                    />
+                  )}
+                  <span style={{ textTransform: "capitalize" }}>
+                    Color: {closetColor === "All" ? "All" : closetColor}
+                  </span>
+                  <span style={{ fontSize: "0.7em" }}>{colorMenuOpen ? "▴" : "▾"}</span>
+                </button>
+
+                {colorMenuOpen && (
+                  <>
+                    <div onClick={() => setColorMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 30 }} />
+                    <div
+                      className="glass-panel"
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        left: 0,
+                        minWidth: 190,
+                        maxHeight: 280,
+                        overflowY: "auto",
+                        padding: 8,
+                        zIndex: 31,
+                        background: "rgba(15,19,48,0.97)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClosetColor("All");
+                          setColorMenuOpen(false);
+                        }}
+                        className={`filter-pill${closetColor === "All" ? " active" : ""}`}
+                        style={{ width: "100%", textAlign: "left" }}
+                      >
+                        All colors
+                      </button>
+                      {colorOptions.map(({ name, swatch }) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => {
+                            setClosetColor(name);
+                            setColorMenuOpen(false);
+                          }}
+                          className={`filter-pill${closetColor === name ? " active" : ""}`}
+                          style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", textTransform: "capitalize" }}
+                        >
+                          <span
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              background: swatch,
+                              border: "1px solid rgba(255,255,255,0.35)",
+                              flexShrink: 0
+                            }}
+                          />
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <ClosetGrid
               items={filteredItems}
               onWear={handleWear}
@@ -404,7 +528,7 @@ export default function DashboardClient({ user, initialItems }) {
               weatherError={weatherError}
               onCityLookup={handleCityLookup}
             />
-            <DonationPanel items={items} onDelete={handleDelete} />
+            <DonationPanel items={items} onDelete={handleItemDonated} />
           </div>
         </section>
       </motion.div>
