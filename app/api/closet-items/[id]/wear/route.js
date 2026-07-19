@@ -15,11 +15,12 @@ export async function POST(request, { params }) {
   const user = await getUserByAuth0Id(session.user.sub);
   if (!user) return NextResponse.json({ error: "User not synced" }, { status: 404 });
 
-  const worn = await markWorn(params.id, user._id);
+  const { id } = await params;
+  const worn = await markWorn(id, user._id);
   if (!worn) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));
-  const itemIds = body.itemIds || [params.id];
+  const itemIds = body.itemIds || [id];
   const entry = await logOutfitWorn(user._id, itemIds, { occasion: body.occasion });
 
   return NextResponse.json({ ok: true, outfitLogEntry: entry });

@@ -17,7 +17,8 @@ export async function GET(request, { params }) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const item = await getClosetItemById(params.id, user._id);
+  const { id } = await params;
+  const item = await getClosetItemById(id, user._id);
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ item });
 }
@@ -28,8 +29,9 @@ export async function PATCH(request, { params }) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const { id } = await params;
   const body = await request.json();
-  const updated = await updateClosetItemTags(params.id, user._id, body);
+  const updated = await updateClosetItemTags(id, user._id, body);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
@@ -38,7 +40,8 @@ export async function DELETE(request, { params }) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const deleted = await deleteClosetItem(params.id, user._id);
+  const { id } = await params;
+  const deleted = await deleteClosetItem(id, user._id);
   if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
